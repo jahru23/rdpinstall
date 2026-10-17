@@ -1,0 +1,73 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --locked
+
+  build-musl:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - name: musl toolchain
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: build
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl
+      - name: package
+        run: |
+          strip target/x86_64-unknown-linux-musl/release/rdpinstall || true
+          tar -czf rdpinstall-x86_64-linux-musl.tar.gz \
+              -C target/x86_64-unknown-linux-musl/release rdpinstall
+          ls -lh rdpinstall-x86_64-linux-musl.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rdpinstall-x86_64-linux-musl
+          path: rdpinstall-x86_64-linux-musl.tar.gz
+          retention-days: 30
+
+  deploy:
+    needs: build-musl
+    if: ${{ github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: rdpinstall-x86_64-linux-musl
+      - name: ssh setup
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: ship binary
+        run: |
+          scp -i ~/.ssh/id_ed25519 rdpinstall-x86_64-linux-musl.tar.gz \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/"
+          scp -i ~/.ssh/id_ed25519 deploy/install-remote.sh \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/rdpinstall-install-remote.sh"
+      - name: activate
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "bash /tmp/rdpinstall-install-remote.sh /tmp/rdpinstall-x86_64-linux-musl.tar.gz"

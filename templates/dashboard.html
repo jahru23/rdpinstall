@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — RDP Installer{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <span class="who">{{ user.display_name() }}{% if !user.handle().is_empty() %} <span class="dim">{{ user.handle() }}</span>{% endif %}</span>
+  <form method="post" action="/logout"><button class="btn ghost small" type="submit">keluar</button></form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-3">
+  <div class="card">
+    <p class="label">Saldo</p>
+    <p class="big">{{ rupiah(balance) }}</p>
+    <div class="row">
+      <button class="btn" disabled title="segera">topup</button>
+      <button class="btn ghost" disabled title="segera">riwayat</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="label">Install baru</p>
+    <p class="big">{{ rupiah(price) }}<span class="unit">/install</span></p>
+    <p class="muted small">Buatan UpCloud dari template Windows resmi. Kredensial muncul otomatis setelah RDP siap.</p>
+    <div class="row"><button class="btn" disabled title="segera">mulai</button></div>
+  </div>
+
+  <div class="card">
+    <p class="label">Akun cloud</p>
+    {% if cloud_accounts.is_empty() %}
+    <p class="big muted">belum ada</p>
+    <p class="muted small">Tambahkan API token UpCloud Anda. Token disimpan terenkripsi dan tidak pernah ditampilkan lagi.</p>
+    {% else %}
+    <ul class="list">
+      {% for a in cloud_accounts %}
+      <li><span class="mono">{{ a.provider }}</span> <span class="badge {{ a.status }}">{{ a.status }}</span>
+      {% if !a.credit.is_empty() %}<span class="dim">{{ a.credit }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    <div class="row"><button class="btn ghost" disabled title="segera">tambah akun</button></div>
+  </div>
+</div>
+
+<section class="card">
+  <div class="cardhead">
+    <h2>Job terakhir</h2>
+    <span class="muted small">10 terakhir</span>
+  </div>
+  {% if jobs.is_empty() %}
+  <p class="empty">Belum ada instalasi. Job yang Anda jalankan akan muncul di sini lengkap dengan progresnya.</p>
+  {% else %}
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>#</th><th>Windows</th><th>Status</th><th>Fase</th><th>Host</th><th>Dibuat</th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+      <tr>
+        <td class="mono">{{ j.id }}</td>
+        <td>{{ j.os_label }}{% if !j.zone.is_empty() %} <span class="dim">{{ j.zone }}</span>{% endif %}</td>
+        <td><span class="badge {{ j.status_class() }}">{{ j.status }}</span></td>
+        <td class="dim">{{ j.phase }}{% if j.is_active() %} <span class="mono">{{ j.progress }}%</span>{% endif %}</td>
+        <td class="mono">{{ j.host }}</td>
+        <td class="dim">{{ dt(j.created_at) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
