@@ -30,6 +30,7 @@ hex = "0.4"
 getrandom = "0.4"
 time = "0.3"
 subtle = "2"
+russh = { version = "0.64", default-features = false, features = ["ring", "rsa"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "http2", "charset", "rustls", "rustls-native-certs"] }
 
 [profile.release]

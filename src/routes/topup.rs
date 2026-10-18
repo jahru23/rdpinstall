@@ -391,6 +391,7 @@ mod tests {
             paygate_public_url: "https://pg-v1.example".into(),
             paygate_key: "gw_test".into(),
             paygate_provider: "gobiz".into(),
+            admin_tg_ids: vec![],
             cryptogate_url: String::new(),
             cryptogate_key: String::new(),
         }

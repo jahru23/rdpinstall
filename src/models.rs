@@ -58,12 +58,97 @@ pub struct Job {
     pub rdp_port: i64,
     pub rdp_user: String,
     pub provider_ref: String,
+    pub ssh_port: i64,
+    pub ssh_user: String,
+    pub guest: i64,
+    pub voucher_code: String,
+    pub edition: String,
+    pub lang: String,
     pub error: String,
     pub created_at: i64,
     pub updated_at: i64,
     pub done_at: i64,
     pub expires_at: i64,
     pub wiped: i64,
+}
+
+/// Tahap perjalanan instalasi, dipakai untuk rel fase di UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stage {
+    Antre,
+    Diperiksa,
+    Mengunduh,
+    Reboot,
+    Windows,
+    Selesai,
+    Gagal,
+}
+
+impl Job {
+    /// Empat titik pada rel fase: mesin diperiksa, Windows diunduh, mesin
+    /// reboot, lalu RDP hidup. Diturunkan dari status + fase yang tersimpan,
+    /// bukan dari hitungan waktu, jadi tidak ada persentase karangan.
+    pub fn stage(&self) -> Stage {
+        match self.status.as_str() {
+            "done" => return Stage::Selesai,
+            "failed" | "cancelled" => return Stage::Gagal,
+            _ => {}
+        }
+        // Urutan pemeriksaan penting: sebutan yang lebih khusus diperiksa lebih
+        // dulu, karena teks fase bisa memuat dua kata kunci sekaligus
+        // ("VPS mengunduh image Windows" memuat "windows" juga).
+        let p = self.phase.to_lowercase();
+        if p.contains("rdp") {
+            Stage::Windows
+        } else if p.contains("unduh") || p.contains("mengirim") {
+            Stage::Mengunduh
+        } else if p.contains("reboot") {
+            Stage::Reboot
+        } else if p.contains("windows") {
+            Stage::Windows
+        } else if p.contains("periksa") || p.contains("memeriksa") || p.contains("menghubungi") {
+            Stage::Diperiksa
+        } else {
+            Stage::Antre
+        }
+    }
+}
+
+#[derive(Debug, Clone, FromRow)]
+pub struct Voucher {
+    pub code: String,
+    pub created_at: i64,
+    pub used_at: i64,
+    pub used_job_id: i64,
+    pub used_host: String,
+    pub revoked: i64,
+    pub note: String,
+}
+
+impl Voucher {
+    pub fn is_free(&self) -> bool {
+        self.used_at == 0 && self.revoked == 0
+    }
+
+    pub fn state_label(&self) -> &'static str {
+        if self.revoked != 0 {
+            "dicabut"
+        } else if self.used_at != 0 {
+            "dipakai"
+        } else {
+            "tersedia"
+        }
+    }
+
+    pub fn state_class(&self) -> &'static str {
+        if self.revoked != 0 {
+            "bad"
+        } else if self.used_at != 0 {
+            "idle"
+        } else {
+            "ok"
+        }
+    }
 }
 
 impl Job {

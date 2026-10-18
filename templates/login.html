@@ -1,27 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Masuk — RDP Installer{% endblock %}
+{% block title %}Masuk · rdpinstall{% endblock %}
 
 {% block content %}
-<section class="hero">
-  <p class="eyebrow">Windows Deployment</p>
-  <h1>Instalasi Windows, lebih tenang.</h1>
-  <p class="lead">Siapkan RDP di UpCloud, pantau progres, ambil kredensialnya — dari satu halaman.</p>
-
-  <div class="grid grid-3 tight">
-    <div class="mini"><span class="dot"></span>Tanpa SSH key</div>
-    <div class="mini"><span class="dot"></span>Progres tersimpan</div>
-    <div class="mini"><span class="dot"></span>Template resmi</div>
-  </div>
+<section class="intro">
+  <h1>Masuk</h1>
+  <p class="lead">Akun dipakai untuk saldo dan riwayat instalasi. Login lewat Telegram,
+  tidak ada password yang disimpan di sini.</p>
 </section>
 
-<section class="card auth">
-  <h2>Masuk</h2>
-  <p class="muted">Login memakai akun Telegram Anda. Tidak ada password yang disimpan di sini.</p>
-
-  {% if !error.is_empty() %}
-  <p class="alert">{{ error }}</p>
-  {% endif %}
-
+<section class="card center">
+  {% if !error.is_empty() %}<p class="alert">{{ error }}</p>{% endif %}
   {% if !bot_username.is_empty() %}
   <div class="widget">
     <script async src="https://telegram.org/js/telegram-widget.js?22"
@@ -30,16 +18,17 @@
             data-radius="6"
             data-auth-url="{{ auth_url }}"></script>
   </div>
-  <p class="muted small">Tombol di atas dikirim Telegram. Konfirmasi sekali untuk membuka akun Anda.</p>
+  <p class="hint">Tombol di atas dikirim Telegram. Konfirmasi sekali untuk membuka akun.</p>
   {% else %}
-  <p class="alert">TELEGRAM_BOT_USERNAME belum diset — login Telegram tidak tersedia.</p>
+  <p class="alert">Login Telegram belum dikonfigurasi.</p>
   {% endif %}
-
   {% if dev_login %}
   <form method="post" action="/auth/dev" class="devrow">
-    <button class="btn ghost" type="submit">masuk sebagai dev</button>
-    <span class="muted small">aktif hanya di lingkungan dev</span>
+    <button class="btn quiet" type="submit">masuk sebagai dev</button>
+    <span class="hint">aktif hanya di lingkungan dev</span>
   </form>
   {% endif %}
+  <p class="hint">Belum punya akun? Instalasi bisa dilakukan tanpa akun memakai
+  <a href="/">kode voucer</a>.</p>
 </section>
 {% endblock %}

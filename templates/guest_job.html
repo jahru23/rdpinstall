@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Progres instalasi · rdpinstall{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <span class="quiet">simpan alamat halaman ini</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<p class="muted small">Halaman ini hanya bisa dibuka lewat alamat unik di bawah. Simpan dulu sebelum menutup tab.</p>
+<div id="card">{{ card|safe }}</div>
+<script>
+(function () {
+  var box = document.getElementById("card");
+  var es = new EventSource("/g/{{ card.token }}/events");
+  es.addEventListener("card", function (ev) { box.innerHTML = ev.data; wire(box); });
+  es.onerror = function () { es.close(); };
+  wire(box);
+  function wire(root) {
+    root.querySelectorAll("[data-copy]").forEach(function (btn) {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", function () {
+        var el = document.getElementById(btn.dataset.copy);
+        if (!el) return;
+        navigator.clipboard.writeText(el.textContent.trim()).then(function () {
+          var old = btn.textContent;
+          btn.textContent = "tercopy";
+          setTimeout(function () { btn.textContent = old; }, 1500);
+        });
+      });
+    });
+  }
+})();
+</script>
+{% endblock %}

@@ -9,8 +9,10 @@ mod error;
 mod jobs;
 mod models;
 mod paygate;
+mod reinstall;
 mod routes;
-mod upcloud;
+mod ssh;
+mod validate;
 mod views;
 
 use std::sync::Arc;

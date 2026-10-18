@@ -21,6 +21,8 @@ pub struct Config {
     pub paygate_public_url: String,
     pub paygate_key: String,
     pub paygate_provider: String,
+    /// id Telegram yang boleh mencetak voucer.
+    pub admin_tg_ids: Vec<i64>,
     pub cryptogate_url: String,
     pub cryptogate_key: String,
 }
@@ -56,6 +58,10 @@ impl Config {
             paygate_public_url: var("PAYGATE_PUBLIC_URL", "https://pg-v1.jaystore.top"),
             paygate_key: var("PAYGATE_API_KEY", ""),
             paygate_provider: var("PAYGATE_PROVIDER", crate::paygate::PROVIDER_DEFAULT),
+            admin_tg_ids: var("RDPINSTALL_ADMIN_TG_IDS", "")
+                .split(',')
+                .filter_map(|x| x.trim().parse::<i64>().ok())
+                .collect(),
             cryptogate_url: var("CRYPTOGATE_URL", "http://127.0.0.1:8899"),
             cryptogate_key: var("CRYPTOGATE_API_KEY", ""),
         })
