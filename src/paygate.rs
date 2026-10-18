@@ -135,14 +135,27 @@ impl Client {
         })
     }
 
+    /// PayGate membangun URL QR dari host yang dipakai memanggilnya. Karena kita
+    /// memanggilnya lewat 127.0.0.1, URL yang kembali menunjuk ke localhost dan
+    /// tidak bisa dibuka browser user — jadi host loopback diganti dengan alamat
+    /// publik gateway, sementara path + query dipertahankan.
     fn absolute(&self, url: &str) -> String {
         if url.is_empty() {
             return String::new();
         }
-        if url.starts_with("http://") || url.starts_with("https://") {
-            url.to_string()
-        } else {
-            format!("{}/{}", self.public_base, url.trim_start_matches('/'))
+        if !url.starts_with("http://") && !url.starts_with("https://") {
+            return format!("{}{}", self.public_base, ensure_slash(url));
+        }
+        let rest = url
+            .strip_prefix("http://")
+            .or_else(|| url.strip_prefix("https://"))
+            .unwrap_or("");
+        match rest.split_once('/') {
+            Some((host, path)) if is_loopback(host) => {
+                format!("{}/{}", self.public_base, path)
+            }
+            None if is_loopback(rest) => self.public_base.clone(),
+            _ => url.to_string(),
         }
     }
 
@@ -253,6 +266,22 @@ impl Client {
     }
 }
 
+fn ensure_slash(url: &str) -> String {
+    if url.starts_with('/') {
+        url.to_string()
+    } else {
+        format!("/{url}")
+    }
+}
+
+fn is_loopback(host_port: &str) -> bool {
+    let host = host_port.split(':').next().unwrap_or(host_port);
+    matches!(
+        host,
+        "127.0.0.1" | "localhost" | "0.0.0.0" | "[::1]" | "::1"
+    )
+}
+
 fn first_error(body: &str) -> String {
     match serde_json::from_str::<serde_json::Value>(body) {
         Ok(v) => {
@@ -358,6 +387,25 @@ mod tests {
             "SumoPod menolak di bawah 10rb"
         );
         assert!(valid_amount(5_000_001).is_err());
+    }
+
+    #[test]
+    fn loopback_host_from_gateway_is_rewritten_to_public_base() {
+        let c = Client::new("http://127.0.0.1:3001", "k", "https://pg-v1.jaystore.top").unwrap();
+        // inilah yang benar-benar dikembalikan PayGate saat dipanggil via localhost
+        assert_eq!(
+            c.absolute("http://127.0.0.1:3001/qr/PG-x-1?format=png"),
+            "https://pg-v1.jaystore.top/qr/PG-x-1?format=png"
+        );
+        assert_eq!(
+            c.absolute("http://localhost:3001/qr/abc"),
+            "https://pg-v1.jaystore.top/qr/abc"
+        );
+        // host luar (mis. halaman checkout SumoPod) dibiarkan apa adanya
+        assert_eq!(
+            c.absolute("https://checkout.pymnt.app/payment-links/abc"),
+            "https://checkout.pymnt.app/payment-links/abc"
+        );
     }
 
     #[test]
