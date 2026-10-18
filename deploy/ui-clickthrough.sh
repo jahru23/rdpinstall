@@ -58,7 +58,7 @@ has "balance" "$DIR/dash.json" '"balance":0'
 echo "5. topup API"
 code=$(curl -s -b "$CJ" -H "Accept: application/json" "$B/topup" -o "$DIR/topup.json" -w "%{http_code}")
 check "GET /topup JSON" 200 "$code"
-has "presets" "$DIR/topup.json" '"presets":[15000,25000,50000,100000]'
+has "presets" "$DIR/topup.json" '"presets":[2000,10000,25000,50000]'
 
 echo "6. admin panel lengkap API"
 code=$(curl -s -b "$CJ" -H "Accept: application/json" "$B/admin/overview" -o "$DIR/overview.json" -w "%{http_code}")

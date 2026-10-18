@@ -304,7 +304,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 <span>Masukkan Kode Voucer</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
-                Voucer sekali pakai untuk satu kali sesi instalasi Windows. Belum punya? Beli di Telegram Bot{' '}
+                1 kode voucer hanya berlaku untuk 1 kali pemasangan Windows. Belum punya voucer? Beli otomatis di Telegram Bot{' '}
                 <a
                   href="https://t.me/panel_jayxbot"
                   target="_blank"

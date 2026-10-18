@@ -16,7 +16,7 @@ use crate::paygate;
 use crate::routes::pages::render_spa;
 use crate::SharedState;
 
-const PRESETS: [i64; 4] = [15_000, 25_000, 50_000, 100_000];
+const PRESETS: [i64; 4] = [2_000, 10_000, 25_000, 50_000];
 const INVOICE_TTL_SECS: i64 = 3_600;
 
 #[derive(Debug, Deserialize)]
@@ -355,7 +355,7 @@ mod tests {
             master_key: [9u8; 32],
             session_ttl_hours: 1,
             job_ttl_hours: 24,
-            price_per_install: 5000,
+            price_per_install: 2000,
             dev_login: true,
             paygate_url: paygate_base.to_string(),
             paygate_public_url: "https://pg-v1.example".into(),

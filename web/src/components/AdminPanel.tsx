@@ -600,7 +600,7 @@ export const AdminPanel: React.FC = () => {
               <div className="p-3 bg-[#f4f1ea] rounded-xl border border-[#e2ded4]">
                 <span className="text-[#71717a] block">Tarif Per Instalasi</span>
                 <span className="font-bold text-sm text-[#0f172a]">
-                  Rp{(stats?.price_per_install || 5000).toLocaleString('id-ID')}
+                  Rp{(stats?.price_per_install || 2000).toLocaleString('id-ID')}
                 </span>
               </div>
               <div className="p-3 bg-[#f4f1ea] rounded-xl border border-[#e2ded4]">

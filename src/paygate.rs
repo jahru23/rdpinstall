@@ -14,7 +14,7 @@ pub const PROVIDER_DEFAULT: &str = "gobiz";
 /// Batas bawah berbeda per provider: SumoPod menolak total di bawah Rp10.000,
 /// GoBiz tidak punya batas itu (invoice Rp500 diterima saat diuji). Angka di sini
 /// adalah kebijakan produk, bukan batas teknis gateway.
-pub const MIN_GOBIZ: i64 = 5_000;
+pub const MIN_GOBIZ: i64 = 2_000;
 pub const MIN_SUMOPOD: i64 = 10_000;
 pub const MAX_BASE_AMOUNT: i64 = 5_000_000;
 
@@ -435,8 +435,8 @@ mod tests {
             valid_amount(9_999, "sumopod").is_err(),
             "SumoPod menolak di bawah 10rb"
         );
-        assert!(valid_amount(5_000, "gobiz").is_ok());
-        assert!(valid_amount(4_999, "gobiz").is_err());
+        assert!(valid_amount(2_000, "gobiz").is_ok());
+        assert!(valid_amount(1_999, "gobiz").is_err());
         assert!(valid_amount(5_000_001, "gobiz").is_err());
     }
 

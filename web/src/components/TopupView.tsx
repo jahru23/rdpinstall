@@ -8,17 +8,17 @@ interface TopupViewProps {
 }
 
 export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
-  const [amount, setAmount] = useState<number>(15000);
+  const [amount, setAmount] = useState<number>(10000);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [invoice, setInvoice] = useState<any>(null);
   const [invoiceStatus, setInvoiceStatus] = useState<string>('pending');
 
-  const presets = [15000, 25000, 50000, 100000];
+  const presets = [2000, 10000, 20000, 50000];
 
   const handleCreateInvoice = async () => {
-    if (amount < 5000) {
-      setError('Nominal minimal topup adalah Rp5.000');
+    if (amount < 2000) {
+      setError('Nominal minimal topup adalah Rp2.000');
       return;
     }
     setLoading(true);
@@ -177,7 +177,7 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
                 </span>
                 <input
                   type="number"
-                  min="5000"
+                  min="2000"
                   max="5000000"
                   step="1000"
                   value={amount}
@@ -185,7 +185,7 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
                   className="input-bone w-full pl-10 pr-4 py-2.5 text-sm font-bold font-mono"
                 />
               </div>
-              <p className="text-[11px] text-[#71717a] mt-1.5">Minimal Rp5.000 · Bebas biaya transaksi gateway.</p>
+              <p className="text-[11px] text-[#71717a] mt-1.5">Minimal Rp2.000 · Bebas biaya transaksi gateway.</p>
             </div>
 
             <div className="pt-2">

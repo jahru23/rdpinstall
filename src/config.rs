@@ -54,7 +54,7 @@ impl Config {
             master_key,
             session_ttl_hours: num("RDPINSTALL_SESSION_TTL_HOURS", 720),
             job_ttl_hours: num("RDPINSTALL_JOB_TTL_HOURS", 24),
-            price_per_install: num("RDPINSTALL_PRICE", 5000),
+            price_per_install: num("RDPINSTALL_PRICE", 2000),
             dev_login,
             paygate_url: var("PAYGATE_URL", "http://127.0.0.1:3001"),
             paygate_public_url: var("PAYGATE_PUBLIC_URL", "https://pg-v1.jaystore.top"),

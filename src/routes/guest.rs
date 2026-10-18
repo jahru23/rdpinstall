@@ -71,8 +71,10 @@ pub async fn create(
     match claim {
         Ok(r) if r.rows_affected() == 1 => {}
         Ok(_) => {
-            return AppError::bad("Kode voucer tidak dikenal, sudah dipakai, atau dicabut.")
-                .into_response();
+            return AppError::bad(
+                "Kode voucer tidak valid, sudah pernah digunakan, atau dicabut. 1 voucer hanya untuk 1 kali instalasi.",
+            )
+            .into_response();
         }
         Err(e) => return AppError::Db(e).into_response(),
     }

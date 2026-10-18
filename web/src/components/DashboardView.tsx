@@ -61,7 +61,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Server className="w-4 h-4 text-orange-500" />
             </div>
             <div className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
-              Rp5.000<span className="text-xs font-normal text-[#71717a] ml-1">/ instalasi</span>
+              Rp2.000<span className="text-xs font-normal text-[#71717a] ml-1">/ instalasi</span>
             </div>
             <p className="text-xs text-[#71717a] mt-1">
               Pasang Windows langsung pada VPS Linux Anda tanpa kode voucer.
