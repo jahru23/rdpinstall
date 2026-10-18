@@ -39,7 +39,7 @@ QRURL=$(grep -o 'src="[^"]*qr[^"]*"' "$DIR/page.html" | head -1 | sed 's/src="//
 PAYURL=$(grep -o 'href="https://[^"]*"' "$DIR/page.html" | grep -v jaystore.top | head -1 | sed 's/href="//;s/"$//')
 echo "QR img   : ${QRURL:-<tidak ada>}"
 echo "pay link : ${PAYURL:-<tidak ada>}"
-grep -oE 'Bayar tepat <b>[^<]*|saldo yang masuk[^<]*' "$DIR/page.html" | head -2
+grep -oE 'Ditagih Rp[0-9.]+[^<]*' "$DIR/page.html" | head -2
 
 echo "== QR bisa diambil? =="
 if [ -n "$QRURL" ]; then

@@ -20,6 +20,7 @@ pub struct Config {
     pub paygate_url: String,
     pub paygate_public_url: String,
     pub paygate_key: String,
+    pub paygate_provider: String,
     pub cryptogate_url: String,
     pub cryptogate_key: String,
 }
@@ -54,6 +55,7 @@ impl Config {
             paygate_url: var("PAYGATE_URL", "http://127.0.0.1:3001"),
             paygate_public_url: var("PAYGATE_PUBLIC_URL", "https://pg-v1.jaystore.top"),
             paygate_key: var("PAYGATE_API_KEY", ""),
+            paygate_provider: var("PAYGATE_PROVIDER", crate::paygate::PROVIDER_DEFAULT),
             cryptogate_url: var("CRYPTOGATE_URL", "http://127.0.0.1:8899"),
             cryptogate_key: var("CRYPTOGATE_API_KEY", ""),
         })

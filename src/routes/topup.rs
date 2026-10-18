@@ -67,7 +67,7 @@ async fn page(
         balance: bal,
         payments: rows,
         presets: PRESETS.to_vec(),
-        min: paygate::MIN_BASE_AMOUNT,
+        min: paygate::min_amount(&state.cfg.paygate_provider),
         max: paygate::MAX_BASE_AMOUNT,
         error: error.to_string(),
         notice: notice.to_string(),
@@ -91,7 +91,7 @@ pub async fn create(
         Ok(a) => a,
         Err(_) => return page(&state, user, "Nominal tidak valid.", "").await,
     };
-    if let Err(msg) = paygate::valid_amount(amount) {
+    if let Err(msg) = paygate::valid_amount(amount, &state.cfg.paygate_provider) {
         return page(&state, user, &msg, "").await;
     }
 
@@ -101,8 +101,9 @@ pub async fn create(
         Err(e) => return page(&state, user, &e.to_string(), "").await,
     };
 
+    let provider = state.cfg.paygate_provider.clone();
     let created = match client
-        .create_invoice(amount, &reference, INVOICE_TTL_SECS)
+        .create_invoice(amount, &reference, INVOICE_TTL_SECS, &provider)
         .await
     {
         Ok(c) => c,
@@ -184,7 +185,18 @@ pub async fn status(
 
     if row.status == "pending" {
         if let Ok(c) = client(&state) {
-            if let Ok(inv) = c.invoice(&row.gateway_id).await {
+            // GoBiz tidak punya webhook upstream yang instan: paksa cek dulu
+            // supaya pembayaran terlihat tanpa menunggu siklus worker gateway.
+            let forced = if state.cfg.paygate_provider == "gobiz" {
+                c.check_invoice(&row.gateway_id).await.ok().flatten()
+            } else {
+                None
+            };
+            let fetched = match forced {
+                Some(inv) => Ok(inv),
+                None => c.invoice(&row.gateway_id).await,
+            };
+            if let Ok(inv) = fetched {
                 if let Err(e) = settle(&state, &row, &inv).await {
                     tracing::warn!("settle {} gagal: {e}", row.reference);
                 }
@@ -310,10 +322,29 @@ async fn build_card(
         None => return Ok(None),
     };
     let bal = balance(state, user_id).await;
+    let p = row;
+    // GoBiz tidak memisahkan biaya (base_amount/service_fee null), SumoPod menagih
+    // nominal + fee. Catatan ini dibentuk di sini supaya template tetap sederhana.
+    let fee_note = if p.total_amount > p.amount && p.amount > 0 {
+        format!(
+            "Ditagih {} (nominal {} + biaya gateway). Saldo yang masuk {}.",
+            crate::views::rupiah(p.total_amount),
+            crate::views::rupiah(p.amount),
+            crate::views::rupiah(p.amount)
+        )
+    } else if p.total_amount > 0 {
+        format!(
+            "Ditagih {}. Saldo yang masuk sebesar itu.",
+            crate::views::rupiah(p.total_amount)
+        )
+    } else {
+        "Nominal ditagih dikonfirmasi gateway sebelum pembayaran.".to_string()
+    };
     Ok(Some(TopupStatusCard {
-        p: row,
+        p,
         balance: bal,
-        min: paygate::MIN_BASE_AMOUNT,
+        min: paygate::min_amount(&state.cfg.paygate_provider),
+        fee_note,
     }))
 }
 
@@ -359,6 +390,7 @@ mod tests {
             paygate_url: paygate_base.to_string(),
             paygate_public_url: "https://pg-v1.example".into(),
             paygate_key: "gw_test".into(),
+            paygate_provider: "gobiz".into(),
             cryptogate_url: String::new(),
             cryptogate_key: String::new(),
         }

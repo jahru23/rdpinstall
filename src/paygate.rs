@@ -8,10 +8,22 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-pub const PROVIDER_QRIS: &str = "sumopod";
-/// SumoPod menolak invoice dengan total di bawah Rp10.000.
-pub const MIN_BASE_AMOUNT: i64 = 10_000;
+/// Provider QRIS yang dipakai. GoBiz (GoPay Merchant) dipilih pemilik produk;
+/// SumoPod masih bisa dipakai dengan mengubah nilai ini + PAYGATE_PROVIDER.
+pub const PROVIDER_DEFAULT: &str = "gobiz";
+/// Batas bawah berbeda per provider: SumoPod menolak total di bawah Rp10.000,
+/// GoBiz tidak punya batas itu (invoice Rp500 diterima saat diuji). Angka di sini
+/// adalah kebijakan produk, bukan batas teknis gateway.
+pub const MIN_GOBIZ: i64 = 5_000;
+pub const MIN_SUMOPOD: i64 = 10_000;
 pub const MAX_BASE_AMOUNT: i64 = 5_000_000;
+
+pub fn min_amount(provider: &str) -> i64 {
+    match provider {
+        "sumopod" => MIN_SUMOPOD,
+        _ => MIN_GOBIZ,
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -32,6 +44,16 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// GoBiz mengirim `base_amount`/`service_fee` sebagai `null` (bukan angka 0),
+/// dan `#[serde(default)]` tidak menangani `null` eksplisit. Tanpa ini, setiap
+/// invoice GoBiz gagal di-deserialize.
+fn null_as_zero<'de, D>(de: D) -> Result<i64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Option::<i64>::deserialize(de)?.unwrap_or(0))
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Invoice {
     #[serde(default)]
@@ -40,11 +62,11 @@ pub struct Invoice {
     pub provider: String,
     #[serde(default)]
     pub reference_id: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_zero")]
     pub base_amount: i64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_zero")]
     pub service_fee: i64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_zero")]
     pub amount: i64,
     #[serde(default)]
     pub status: String,
@@ -93,12 +115,10 @@ pub struct Created {
     pub raw: serde_json::Value,
 }
 
-pub fn valid_amount(base: i64) -> Result<(), String> {
-    if base < MIN_BASE_AMOUNT {
-        return Err(format!(
-            "Nominal minimal Rp{} (biaya gateway membuat total di bawah batas SumoPod).",
-            MIN_BASE_AMOUNT
-        ));
+pub fn valid_amount(base: i64, provider: &str) -> Result<(), String> {
+    let min = min_amount(provider);
+    if base < min {
+        return Err(format!("Nominal minimal Rp{min}."));
     }
     if base > MAX_BASE_AMOUNT {
         return Err(format!("Nominal maksimal Rp{MAX_BASE_AMOUNT} per topup."));
@@ -194,10 +214,11 @@ impl Client {
         base_amount: i64,
         reference_id: &str,
         expires_in: i64,
+        provider: &str,
     ) -> Result<Created, Error> {
         let body = serde_json::json!({
             "amount": base_amount,
-            "provider": PROVIDER_QRIS,
+            "provider": provider,
             "reference_id": reference_id,
             "expires_in": expires_in,
         });
@@ -255,6 +276,25 @@ impl Client {
         serde_json::from_value(inv).map_err(|e| Error::Decode(e.to_string()))
     }
 
+    /// GoBiz: memaksa gateway menanyakan status ke upstream sekarang juga.
+    /// Responsnya sudah memuat `data.invoice`, jadi hasilnya bisa dipakai
+    /// langsung tanpa panggilan GET tambahan.
+    pub async fn check_invoice(&self, invoice_id: &str) -> Result<Option<Invoice>, Error> {
+        let v = self
+            .request(
+                reqwest::Method::POST,
+                &format!("/v1/invoices/{invoice_id}/check"),
+                None,
+            )
+            .await?;
+        match v.pointer("/data/invoice").cloned() {
+            Some(inv) => Ok(Some(
+                serde_json::from_value(inv).map_err(|e| Error::Decode(e.to_string()))?,
+            )),
+            None => Ok(None),
+        }
+    }
+
     pub async fn cancel_invoice(&self, invoice_id: &str) -> Result<(), Error> {
         self.request(
             reqwest::Method::POST,
@@ -308,7 +348,7 @@ mod tests {
       "data": {
         "invoice": {
           "id": "inv_a1b2c3d4e5f6g7h8",
-          "provider": "sumopod",
+          "provider": "gobiz",
           "reference_id": "rdpi-1-abcd",
           "base_amount": 15000,
           "service_fee": 405,
@@ -379,14 +419,37 @@ mod tests {
     }
 
     #[test]
-    fn amount_bounds() {
-        assert!(valid_amount(10_000).is_ok());
-        assert!(valid_amount(50_000).is_ok());
+    fn amount_bounds_per_provider() {
+        assert!(valid_amount(10_000, "sumopod").is_ok());
+        assert!(valid_amount(50_000, "sumopod").is_ok());
         assert!(
-            valid_amount(9_999).is_err(),
+            valid_amount(9_999, "sumopod").is_err(),
             "SumoPod menolak di bawah 10rb"
         );
-        assert!(valid_amount(5_000_001).is_err());
+        assert!(valid_amount(5_000, "gobiz").is_ok());
+        assert!(valid_amount(4_999, "gobiz").is_err());
+        assert!(valid_amount(5_000_001, "gobiz").is_err());
+    }
+
+    /// GoBiz tidak memisahkan biaya: base_amount/service_fee null, dan `amount`
+    /// adalah nominal yang ditagih sekaligus yang dikreditkan.
+    #[test]
+    fn gobiz_invoice_credits_full_amount() {
+        let body = r#"{"success":true,"data":{"invoice":{
+            "id":"inv_gobiz","provider":"gobiz","status":"pending",
+            "base_amount":null,"service_fee":null,"amount":15000}}}"#;
+        let inv = parse(body);
+        assert_eq!(inv.base_amount, 0);
+        assert_eq!(inv.amount, 15000);
+        assert_eq!(inv.credit_amount(), 15000);
+    }
+
+    #[test]
+    fn null_amounts_from_gobiz_do_not_break_parsing() {
+        let body = r#"{"data":{"invoice":{"id":"i","status":"pending","base_amount":null,"service_fee":null,"amount":null}}}"#;
+        let inv = parse(body);
+        assert_eq!(inv.credit_amount(), 0);
+        assert!(!inv.is_paid());
     }
 
     #[test]

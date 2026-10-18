@@ -5,8 +5,7 @@
   </div>
 
   {% if p.status == "pending" %}
-  <p class="muted">Bayar tepat <b>{{ rupiah(p.total_amount) }}</b> (nominal {{ rupiah(p.amount) }} + biaya gateway).
-  Saldo yang masuk: {{ rupiah(p.amount) }}.</p>
+  <p class="muted">{{ fee_note }}</p>
   {% if !p.qr_string.is_empty() %}
   <div class="qrbox">
     <img src="{{ p.qr_string }}" alt="QRIS" width="260" height="260">

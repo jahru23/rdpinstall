@@ -157,6 +157,8 @@ pub struct TopupStatusCard {
     pub balance: i64,
     #[allow(dead_code)]
     pub min: i64,
+    /// Kalimat nominal, dibentuk di route karena bergantung provider.
+    pub fee_note: String,
 }
 
 impl TopupStatusCard {
