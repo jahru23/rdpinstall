@@ -42,6 +42,22 @@ impl DashboardPage {
     }
 }
 
+#[derive(Template)]
+#[template(path = "cloud.html")]
+pub struct CloudPage {
+    pub user: User,
+    pub accounts: Vec<CloudAccount>,
+    pub error: String,
+    pub notice: String,
+    pub max_accounts: i64,
+}
+
+impl CloudPage {
+    pub fn dt(&self, ts: &i64) -> String {
+        dt(*ts)
+    }
+}
+
 pub fn rupiah(n: i64) -> String {
     let s = n.abs().to_string();
     let mut out = String::new();

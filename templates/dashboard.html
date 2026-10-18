@@ -34,12 +34,12 @@
     {% else %}
     <ul class="list">
       {% for a in cloud_accounts %}
-      <li><span class="mono">{{ a.provider }}</span> <span class="badge {{ a.status }}">{{ a.status }}</span>
+      <li><span class="mono">{{ a.provider }}</span> <span class="badge {{ a.status_class() }}">{{ a.status }}</span>
       {% if !a.credit.is_empty() %}<span class="dim">{{ a.credit }}</span>{% endif %}</li>
       {% endfor %}
     </ul>
     {% endif %}
-    <div class="row"><button class="btn ghost" disabled title="segera">tambah akun</button></div>
+    <div class="row"><a class="btn ghost" href="/cloud">kelola akun</a></div>
   </div>
 </div>
 

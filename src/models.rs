@@ -93,6 +93,16 @@ pub struct CloudAccount {
     pub created_at: i64,
 }
 
+impl CloudAccount {
+    pub fn status_class(&self) -> &'static str {
+        match self.status.as_str() {
+            "ok" => "ok",
+            "invalid" => "bad",
+            _ => "unchecked",
+        }
+    }
+}
+
 /// Payload Telegram Login Widget kirim sebagai query string.
 #[derive(Debug, Clone, Deserialize)]
 pub struct TelegramAuth {

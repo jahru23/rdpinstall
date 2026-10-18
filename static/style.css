@@ -124,6 +124,17 @@ input:focus, select:focus { outline: none; border-color: var(--accent-dim); }
   color: #ffb3b5; border-radius: 7px; padding: 10px 12px; font-size: 13px; margin: 12px 0 0;
 }
 
+.ok-alert {
+  background: rgba(62,207,142,.08); border: 1px solid rgba(62,207,142,.35);
+  color: #a8e9c8; border-radius: 7px; padding: 10px 12px; font-size: 13px; margin: 12px 0 0;
+}
+
+.form { display: flex; flex-direction: column; gap: 14px; max-width: 540px; }
+.form label { display: flex; flex-direction: column; gap: 6px; }
+.form .label { margin: 0; }
+
+a.btn { display: inline-block; text-decoration: none; }
+
 .badge {
   display: inline-block; font-family: var(--mono); font-size: 11px;
   padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-2); color: var(--fg-dim);

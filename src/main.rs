@@ -8,6 +8,7 @@ mod db;
 mod error;
 mod models;
 mod routes;
+mod upcloud;
 mod views;
 
 use std::sync::Arc;

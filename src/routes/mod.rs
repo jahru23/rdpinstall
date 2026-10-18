@@ -1,4 +1,5 @@
 pub mod assets;
+pub mod cloud;
 pub mod pages;
 pub mod telegram;
 
@@ -14,6 +15,9 @@ pub fn router(state: SharedState) -> Router {
         .route("/auth/telegram", get(telegram::callback))
         .route("/auth/dev", post(telegram::dev_login))
         .route("/logout", post(telegram::logout))
+        .route("/cloud", get(cloud::index).post(cloud::add))
+        .route("/cloud/{id}/check", post(cloud::check))
+        .route("/cloud/{id}/delete", post(cloud::delete))
         .route("/healthz", get(|| async { "ok" }))
         .route("/static/style.css", get(assets::css))
         .route("/favicon.svg", get(assets::favicon))
