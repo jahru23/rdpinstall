@@ -10,32 +10,94 @@
     {% endfor %}
   </div>
 
-  <p class="phase">{{ job.phase }}</p>
+  <p class="phase">
+    {% if running() %}<span class="phase-pulse"></span>{% endif %}
+    {{ job.phase }}
+  </p>
 
   <dl class="facts">
-    <div><dt>VPS</dt><dd class="mono">{{ job.host }}:{{ job.ssh_port }}</dd></div>
-    <div><dt>Windows</dt><dd>{{ job.os_label }} · {{ job.lang }}</dd></div>
-    <div><dt>Mulai</dt><dd>{{ dt(job.created_at) }}</dd></div>
-    {% if job.done_at > 0 %}<div><dt>RDP siap</dt><dd>{{ dt(job.done_at) }}</dd></div>{% endif %}
+    <div><dt>Alamat VPS</dt><dd class="mono">{{ job.host }}:{{ job.ssh_port }}</dd></div>
+    <div><dt>Versi Windows</dt><dd>{{ job.os_label }} ({{ job.lang }})</dd></div>
+    <div><dt>Waktu Mulai</dt><dd>{{ dt(job.created_at) }}</dd></div>
+    {% if job.done_at > 0 %}<div><dt>RDP Siap</dt><dd>{{ dt(job.done_at) }}</dd></div>{% endif %}
   </dl>
 
   {% if !job.error.is_empty() %}
-  <p class="alert">{{ job.error }}</p>
+  <div class="alert">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ job.error }}</span>
+  </div>
   {% endif %}
 
   {% if job.status == "done" %}
   <div class="creds">
-    <div class="cred"><span class="k">IP</span><span class="v mono" id="g-host">{{ job.host }}</span><button class="btn tiny quiet" type="button" data-copy="g-host">copy</button></div>
-    <div class="cred"><span class="k">Port</span><span class="v mono" id="g-port">{{ job.rdp_port }}</span><button class="btn tiny quiet" type="button" data-copy="g-port">copy</button></div>
-    <div class="cred"><span class="k">User</span><span class="v mono" id="g-user">{{ job.rdp_user }}</span><button class="btn tiny quiet" type="button" data-copy="g-user">copy</button></div>
+    <div class="cred">
+      <span class="k">IP Address</span>
+      <span class="v mono" id="g-host">{{ job.host }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="g-host">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
+    <div class="cred">
+      <span class="k">Port RDP</span>
+      <span class="v mono" id="g-port">{{ job.rdp_port }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="g-port">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
+    <div class="cred">
+      <span class="k">Username</span>
+      <span class="v mono" id="g-user">{{ job.rdp_user }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="g-user">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
     {% if let Some(pw) = password %}
-    <div class="cred"><span class="k">Password</span><span class="v mono" id="g-pw">{{ pw }}</span><button class="btn tiny quiet" type="button" data-copy="g-pw">copy</button></div>
+    <div class="cred">
+      <span class="k">Password</span>
+      <span class="v mono" id="g-pw">{{ pw }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="g-pw">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
     {% endif %}
   </div>
-  <p class="hint">Buka Remote Desktop lalu sambungkan ke alamat di atas. Ganti password setelah masuk pertama.</p>
+  <p class="hint">Buka Remote Desktop (mstsc di Windows atau Microsoft Remote Desktop di Mac/Mobile) lalu sambungkan ke alamat di atas.</p>
+  {% endif %}
+
+  {% if !events.is_empty() %}
+  <div class="log">
+    {% for e in events %}
+    <div class="line">
+      <span class="dim mono">{{ ago(e.ts) }}</span>
+      <span class="grow">{{ e.phase }}</span>
+      {% if !e.message.is_empty() %}<span class="dim">{{ e.message }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
   {% endif %}
 
   {% if running() %}
-  <p class="hint">Proses 20 sampai 60 menit. Halaman ini memperbarui sendiri.</p>
+  <p class="hint">Proses pemasangan biasanya memerlukan 20 hingga 60 menit tergantung kecepatan unduhan VPS. Halaman ini memperbarui status secara otomatis.</p>
   {% endif %}
 </section>

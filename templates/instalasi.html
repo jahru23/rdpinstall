@@ -3,45 +3,115 @@
 
 {% block topnav %}
 <div class="topnav">
-  <a class="quiet" href="/dashboard">ringkasan</a>
-  <span class="who">saldo {{ rupiah(balance) }}</span>
+  <a class="nav-pill" href="/dashboard">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="14" y="14" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+    </svg>
+    ringkasan
+  </a>
+  <span class="who">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+      <path d="M12 18V6"></path>
+    </svg>
+    saldo {{ rupiah(balance) }}
+  </span>
 </div>
 {% endblock %}
 
 {% block content %}
 <section class="intro">
+  <div class="intro-badge">
+    <span class="intro-badge-dot"></span>
+    Konfigurasi Deployment VPS
+  </div>
   <h1>Pasang Windows di VPS Anda</h1>
   <p class="lead">Tarif {{ rupiah(price) }} sekali pasang, dipotong dari saldo saat
   instalasi dimulai. VPS tetap milik Anda, kami hanya menjalankan installer lewat SSH.</p>
 </section>
 
-{% if !error.is_empty() %}<p class="alert">{{ error }}</p>{% endif %}
-{% if !notice.is_empty() %}<p class="ok">{{ notice }}</p>{% endif %}
+{% if !error.is_empty() %}
+<div class="alert">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"></circle>
+    <line x1="12" y1="8" x2="12" y2="12"></line>
+    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+  </svg>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+{% if !notice.is_empty() %}
+<div class="ok">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+  <span>{{ notice }}</span>
+</div>
+{% endif %}
 
 {% if balance < price %}
-<p class="alert">Saldo tidak cukup untuk tarif {{ rupiah(price) }}. <a href="/topup">Isi saldo dulu</a>.</p>
+<div class="alert">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 2 22 22 22 12 2"></polygon>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+  <span>Saldo tidak cukup untuk tarif {{ rupiah(price) }}. <a href="/topup" style="color: #fff; text-decoration: underline;">Isi saldo dulu</a>.</span>
+</div>
 {% endif %}
 
 <form method="post" action="/instalasi" class="card form" autocomplete="off">
   <div class="field">
-    <label for="host">Alamat VPS</label>
+    <label for="host">
+      <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+        <line x1="6" y1="6" x2="6.01" y2="6"></line>
+        <line x1="6" y1="18" x2="6.01" y2="18"></line>
+      </svg>
+      Alamat VPS
+    </label>
     <input id="host" name="host" type="text" required placeholder="103.150.60.10" spellcheck="false">
     <p class="hint">IP publik atau domain. VPS Linux dengan akses root.</p>
   </div>
 
   <div class="two">
     <div class="field">
-      <label for="ssh_user">User SSH</label>
+      <label for="ssh_user">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        User SSH
+      </label>
       <input id="ssh_user" name="ssh_user" type="text" value="root">
     </div>
     <div class="field">
-      <label for="ssh_port">Port SSH</label>
+      <label for="ssh_port">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        Port SSH
+      </label>
       <input id="ssh_port" name="ssh_port" type="number" value="22" inputmode="numeric">
     </div>
   </div>
 
   <div class="field">
-    <label for="ssh_pass">Password SSH</label>
+    <label for="ssh_pass">
+      <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+      Password SSH
+    </label>
     <input id="ssh_pass" name="ssh_pass" type="password" required autocomplete="off">
     <p class="hint">Dienkripsi saat disimpan dan dipakai untuk menjalankan installer.
     Dibuang otomatis begitu instalasi selesai atau setelah 24 jam.</p>
@@ -49,7 +119,15 @@
 
   <div class="two">
     <div class="field">
-      <label for="edition">Windows</label>
+      <label for="edition">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="8" height="8"></rect>
+          <rect x="13" y="3" width="8" height="8"></rect>
+          <rect x="3" y="13" width="8" height="8"></rect>
+          <rect x="13" y="13" width="8" height="8"></rect>
+        </svg>
+        Windows
+      </label>
       <select id="edition" name="edition">
         {% for e in editions %}
         <option value="{{ e.key() }}">{{ e.label() }} ({{ e.note() }})</option>
@@ -57,7 +135,14 @@
       </select>
     </div>
     <div class="field">
-      <label for="lang">Bahasa</label>
+      <label for="lang">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        Bahasa
+      </label>
       <select id="lang" name="lang">
         <option value="en-us">English</option>
         <option value="zh-cn">Chinese Simplified</option>
@@ -67,21 +152,47 @@
 
   <div class="two">
     <div class="field">
-      <label for="rdp_user">User Windows</label>
+      <label for="rdp_user">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        User Windows
+      </label>
       <input id="rdp_user" name="rdp_user" type="text" value="Administrator">
     </div>
     <div class="field">
-      <label for="rdp_port">Port RDP</label>
+      <label for="rdp_port">
+        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        Port RDP
+      </label>
       <input id="rdp_port" name="rdp_port" type="number" value="3389" inputmode="numeric">
     </div>
   </div>
 
   <div class="field">
-    <label for="rdp_pass">Password Windows</label>
+    <label for="rdp_pass">
+      <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      Password Windows
+    </label>
     <input id="rdp_pass" name="rdp_pass" type="password" required autocomplete="new-password">
     <p class="hint">Minimal 8 karakter, campur huruf besar, kecil, angka, atau simbol.</p>
   </div>
 
-  <button class="btn" type="submit">periksa dan pasang</button>
+  <button class="btn" type="submit">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
+      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path>
+      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"></path>
+      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"></path>
+    </svg>
+    periksa dan pasang
+  </button>
 </form>
 {% endblock %}

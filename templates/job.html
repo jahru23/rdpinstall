@@ -3,49 +3,64 @@
 
 {% block topnav %}
 <div class="topnav">
-  <a class="btn ghost small" href="/">dashboard</a>
-  <a class="btn ghost small" href="/install">install baru</a>
+  <a class="nav-pill" href="/dashboard">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="14" y="14" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+    </svg>
+    ringkasan
+  </a>
+  <a class="nav-pill" href="/instalasi">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    pasang baru
+  </a>
 </div>
 {% endblock %}
 
 {% block content %}
 <noscript>
-  <p class="alert">JavaScript dinonaktifkan; progres tidak diperbarui otomatis. Muat ulang halaman untuk memperbarui.</p>
+  <div class="alert">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>JavaScript dinonaktifkan; progres tidak diperbarui otomatis. Muat ulang halaman untuk memperbarui.</span>
+  </div>
 </noscript>
 
-<div id="jobcard">
-  <section class="card">
-    <div class="cardhead">
-      <h2>Job #{{ card.job.id }} · {{ card.job.os_label }}</h2>
-      <span class="badge {{ card.job.status_class() }}">{{ card.job.status }}</span>
-    </div>
-    <p class="muted">{{ card.job.phase }}</p>
-    {% if card.job.status == "done" %}
-    <p class="mono">{{ card.job.host }}:{{ card.job.rdp_port }} · {{ card.job.rdp_user }}</p>
-    {% endif %}
-  </section>
-</div>
+<div id="card">{{ card|safe }}</div>
 
 <script>
 (function () {
-  var box = document.getElementById("jobcard");
-  var es = new EventSource("/jobs/{{ card.job.id }}/events");
+  var box = document.getElementById("card");
+  var es = new EventSource("/j/{{ card.job.id }}/events");
   es.addEventListener("card", function (ev) {
     box.innerHTML = ev.data;
-    var btn = box.querySelector("[data-copy]");
-    if (btn && !btn.dataset.bound) {
+    wire(box);
+  });
+  es.onerror = function () { es.close(); };
+  wire(box);
+  function wire(root) {
+    root.querySelectorAll("[data-copy]").forEach(function (btn) {
+      if (btn.dataset.bound) return;
       btn.dataset.bound = "1";
       btn.addEventListener("click", function () {
         var el = document.getElementById(btn.dataset.copy);
         if (!el) return;
         navigator.clipboard.writeText(el.textContent.trim()).then(function () {
-          btn.textContent = "tersalin";
-          setTimeout(function () { btn.textContent = "salin"; }, 1500);
+          var old = btn.textContent;
+          btn.textContent = "tercopy";
+          setTimeout(function () { btn.textContent = old; }, 1500);
         });
       });
-    }
-  });
-  es.onerror = function () { es.close(); };
+    });
+  }
 })();
 </script>
 {% endblock %}

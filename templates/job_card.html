@@ -1,39 +1,88 @@
 <section class="card">
-  <div class="cardhead">
+  <div class="head">
     <h2>Job #{{ job.id }} · {{ job.os_label }}</h2>
     <span class="badge {{ job.status_class() }}">{{ job.status }}</span>
   </div>
 
-  <div class="bar"><span style="width: {{ job.progress }}%"></span></div>
-  <p class="muted">{{ job.phase }}{% if job.is_active() %} <span class="mono">{{ job.progress }}%</span>{% endif %}</p>
-
-  <div class="kv">
-    <div><span class="k">Lokasi</span><span class="v mono">{{ job.zone }}</span></div>
-    <div><span class="k">Plan</span><span class="v mono">{{ job.plan }}</span></div>
-    <div><span class="k">Dibuat</span><span class="v">{{ dt(job.created_at) }}</span></div>
-    {% if job.done_at > 0 %}<div><span class="k">RDP siap</span><span class="v">{{ dt(job.done_at) }}</span></div>{% endif %}
+  <div class="rail">
+    {% for s in rail() %}
+    <div class="step {{ s.state }}"><span class="dot"></span><span class="lbl">{{ s.label }}</span></div>
+    {% endfor %}
   </div>
 
+  <p class="phase">
+    {% if running() %}<span class="phase-pulse"></span>{% endif %}
+    {{ job.phase }}
+  </p>
+
+  <dl class="facts">
+    <div><dt>Alamat VPS</dt><dd class="mono">{{ job.host }}:{{ job.ssh_port }}</dd></div>
+    <div><dt>Versi Windows</dt><dd>{{ job.os_label }} ({{ job.lang }})</dd></div>
+    <div><dt>Waktu Mulai</dt><dd>{{ dt(job.created_at) }}</dd></div>
+    {% if job.done_at > 0 %}<div><dt>RDP Siap</dt><dd>{{ dt(job.done_at) }}</dd></div>{% endif %}
+  </dl>
+
   {% if !job.error.is_empty() %}
-  <p class="alert">{{ job.error }}</p>
+  <div class="alert">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span>{{ job.error }}</span>
+  </div>
   {% endif %}
 
   {% if job.status == "done" %}
   <div class="creds">
-    <div class="cred"><span class="k">IP</span><span class="v mono" id="hv">{{ job.host }}</span><button class="btn ghost small" data-copy="hv">salin</button></div>
-    <div class="cred"><span class="k">Port</span><span class="v mono" id="pv">{{ job.rdp_port }}</span><button class="btn ghost small" data-copy="pv">salin</button></div>
-    <div class="cred"><span class="k">User</span><span class="v mono" id="uv">{{ job.rdp_user }}</span><button class="btn ghost small" data-copy="uv">salin</button></div>
+    <div class="cred">
+      <span class="k">IP Address</span>
+      <span class="v mono" id="host">{{ job.host }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="host">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
+    <div class="cred">
+      <span class="k">Port RDP</span>
+      <span class="v mono" id="port">{{ job.rdp_port }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="port">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
+    <div class="cred">
+      <span class="k">Username</span>
+      <span class="v mono" id="user">{{ job.rdp_user }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="user">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
     {% if let Some(pw) = password %}
-    <div class="cred"><span class="k">Password</span><span class="v mono" id="pwv">{{ pw }}</span><button class="btn ghost small" data-copy="pwv">salin</button></div>
-    {% endif %}
-    {% if let Some(pw) = password %}
-    <p class="muted small">Password hilang otomatis {{ dt(job.expires_at) }}. Ganti setelah login pertama.</p>
+    <div class="cred">
+      <span class="k">Password</span>
+      <span class="v mono" id="pw">{{ pw }}</span>
+      <button class="btn tiny quiet" type="button" data-copy="pw">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        copy
+      </button>
+    </div>
+    <p class="hint">Password ini terhapus otomatis pada {{ dt(job.expires_at) }}. Ganti password setelah pertama kali masuk.</p>
     {% else %}
-    {% if job.wiped == 1 %}
-    <p class="muted small">Password sudah dihapus karena masa simpan habis. Reset lewat panel UpCloud bila perlu.</p>
-    {% else %}
-    <p class="muted small">UpCloud tidak mengirim password di respons create : setel ulang lewat panel jika perlu.</p>
-    {% endif %}
+    <p class="hint">Password sudah dihapus dari sistem karena masa simpan telah habis.</p>
     {% endif %}
   </div>
   {% endif %}
@@ -41,23 +90,45 @@
   {% if !events.is_empty() %}
   <div class="log">
     {% for e in events %}
-    <div class="logline"><span class="dim">{{ dt(e.ts) }}</span> <span class="mono">{{ e.phase }}</span>
-      {% if !e.message.is_empty() %}<span class="dim">{{ e.message }}</span>{% endif %}</div>
+    <div class="line">
+      <span class="dim mono">{{ ago(e.ts) }}</span>
+      <span class="grow">{{ e.phase }}</span>
+      {% if !e.message.is_empty() %}<span class="dim">{{ e.message }}</span>{% endif %}
+    </div>
     {% endfor %}
   </div>
   {% endif %}
 
-  <div class="row">
-    {% if job.status == "done" || job.status == "failed" %}
+  <div class="actions">
     {% if job.status == "done" %}
-    <form method="post" action="/jobs/{{ job.id }}/destroy"
-          onsubmit="return confirm('Hapus server di UpCloud? Tindakan ini tidak bisa dibatalkan.');">
-      <button class="btn ghost small" type="submit">hancurkan server</button>
+    <form method="post" action="/j/{{ job.id }}/wipe">
+      <button class="btn quiet tiny" type="submit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+        </svg>
+        hapus kredensial sekarang
+      </button>
     </form>
     {% endif %}
-    <a class="btn ghost small" href="/install">install baru</a>
-    {% else %}
-    <span class="muted small">biarkan tab ini terbuka; status diperbarui otomatis.</span>
+    {% if job.status == "failed" %}
+    <form method="post" action="/j/{{ job.id }}/reset">
+      <button class="btn quiet tiny" type="submit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+        kembalikan boot Linux
+      </button>
+    </form>
     {% endif %}
+    <a class="btn quiet tiny" href="/instalasi">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      pasang yang baru
+    </a>
   </div>
 </section>
