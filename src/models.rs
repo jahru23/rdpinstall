@@ -81,6 +81,45 @@ impl Job {
     }
 }
 
+/// Satu invoice topup.
+///
+/// Catatan penamaan: kolom DB `qr_string` menyimpan **URL PNG QRIS** dari
+/// gateway (bukan payload QR mentah) — dokumen PayGate melarang menggambar QR
+/// sendiri dari string, jadi kami memakai gambar yang diterbitkan gateway.
+#[derive(Debug, Clone, FromRow)]
+pub struct Payment {
+    pub id: i64,
+    pub user_id: i64,
+    pub gateway: String,
+    #[sqlx(rename = "ref")]
+    pub reference: String,
+    pub gateway_id: String,
+    pub amount: i64,
+    pub total_amount: i64,
+    pub status: String,
+    pub qr_string: String,
+    pub pay_url: String,
+    pub txn_id: String,
+    pub created_at: i64,
+    pub paid_at: i64,
+    pub expires_at: i64,
+}
+
+impl Payment {
+    pub fn status_class(&self) -> &'static str {
+        match self.status.as_str() {
+            "paid" => "ok",
+            "pending" => "live",
+            "expired" | "cancelled" | "failed" => "bad",
+            _ => "unchecked",
+        }
+    }
+
+    pub fn is_pending(&self) -> bool {
+        self.status == "pending"
+    }
+}
+
 #[derive(Debug, Clone, FromRow)]
 pub struct JobEvent {
     pub ts: i64,

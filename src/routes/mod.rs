@@ -3,6 +3,7 @@ pub mod cloud;
 pub mod install;
 pub mod pages;
 pub mod telegram;
+pub mod topup;
 
 use axum::routing::{get, post};
 use axum::Router;
@@ -23,6 +24,10 @@ pub fn router(state: SharedState) -> Router {
         .route("/jobs/{id}", get(install::detail))
         .route("/jobs/{id}/events", get(install::events))
         .route("/jobs/{id}/destroy", post(install::destroy))
+        .route("/topup", get(topup::index).post(topup::create))
+        .route("/topup/{ref}", get(topup::detail))
+        .route("/topup/{ref}/status", get(topup::status))
+        .route("/topup/{ref}/cancel", post(topup::cancel))
         .route("/healthz", get(|| async { "ok" }))
         .route("/static/style.css", get(assets::css))
         .route("/favicon.svg", get(assets::favicon))

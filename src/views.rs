@@ -1,6 +1,6 @@
 use askama::Template;
 
-use crate::models::{CloudAccount, Job, JobEvent, User};
+use crate::models::{CloudAccount, Job, JobEvent, Payment, User};
 use crate::upcloud::{Plan, Template as WinTemplate, Zone};
 
 #[derive(Template)]
@@ -125,4 +125,55 @@ impl JobCard {
     pub fn dt(&self, ts: &i64) -> String {
         dt(*ts)
     }
+}
+
+#[derive(Template)]
+#[template(path = "topup.html")]
+pub struct TopupPage {
+    pub user: User,
+    pub balance: i64,
+    pub payments: Vec<Payment>,
+    pub presets: Vec<i64>,
+    pub min: i64,
+    pub max: i64,
+    pub error: String,
+    pub notice: String,
+}
+
+impl TopupPage {
+    pub fn rupiah(&self, n: &i64) -> String {
+        rupiah(*n)
+    }
+
+    pub fn dt(&self, ts: &i64) -> String {
+        dt(*ts)
+    }
+}
+
+#[derive(Template)]
+#[template(path = "topup_status.html")]
+pub struct TopupStatusCard {
+    pub p: Payment,
+    pub balance: i64,
+    #[allow(dead_code)]
+    pub min: i64,
+}
+
+impl TopupStatusCard {
+    pub fn rupiah(&self, n: &i64) -> String {
+        rupiah(*n)
+    }
+
+    pub fn dt(&self, ts: &i64) -> String {
+        dt(*ts)
+    }
+}
+
+#[derive(Template)]
+#[template(path = "topup_detail.html")]
+pub struct TopupDetailPage {
+    pub user: User,
+    pub reference: String,
+    /// Kartu status yang sudah dirender (dipakai juga oleh polling).
+    pub card_html: String,
 }

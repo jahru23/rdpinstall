@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Topup — RDP Installer{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <a class="btn ghost small" href="/topup">topup</a>
+  <a class="btn ghost small" href="/">dashboard</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="topupcard">{{ card_html|safe }}</div>
+<script>
+(function () {
+  var box = document.getElementById("topupcard");
+  function refresh() {
+    fetch("/topup/{{ reference }}/status", { credentials: "same-origin" })
+      .then(function (r) { return r.text(); })
+      .then(function (html) { box.innerHTML = html; });
+  }
+  var timer = setInterval(refresh, 5000);
+  window.addEventListener("beforeunload", function () { clearInterval(timer); });
+})();
+</script>
+{% endblock %}

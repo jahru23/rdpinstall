@@ -8,6 +8,7 @@ mod db;
 mod error;
 mod jobs;
 mod models;
+mod paygate;
 mod routes;
 mod upcloud;
 mod views;

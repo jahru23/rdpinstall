@@ -1,0 +1,36 @@
+<section class="card">
+  <div class="cardhead">
+    <h2>Topup {{ rupiah(p.amount) }}</h2>
+    <span class="badge {{ p.status_class() }}">{{ p.status }}</span>
+  </div>
+
+  {% if p.status == "pending" %}
+  <p class="muted">Bayar tepat <b>{{ rupiah(p.total_amount) }}</b> (nominal {{ rupiah(p.amount) }} + biaya gateway).
+  Saldo yang masuk: {{ rupiah(p.amount) }}.</p>
+  {% if !p.qr_string.is_empty() %}
+  <div class="qrbox">
+    <img src="{{ p.qr_string }}" alt="QRIS" width="260" height="260">
+    <p class="muted small">Scan dengan aplikasi bank / e-wallet apa pun yang mendukung QRIS.</p>
+  </div>
+  {% endif %}
+  {% if !p.pay_url.is_empty() %}
+  <p class="muted small">Tidak bisa scan? Buka tautan pembayaran: <a href="{{ p.pay_url }}" rel="noreferrer noopener" target="_blank">{{ p.pay_url }}</a></p>
+  {% endif %}
+  <p class="muted small">Halaman ini memeriksa status tiap 5 detik. Invoice berlaku sampai
+  {{ dt(p.expires_at) }}.</p>
+  <div class="row">
+    <form method="post" action="/topup/{{ p.reference }}/cancel">
+      <button class="btn ghost small" type="submit">batalkan</button>
+    </form>
+  </div>
+  {% elif p.status == "paid" %}
+  <p class="ok-alert">Pembayaran diterima {{ dt(p.paid_at) }}. Saldo sekarang {{ rupiah(balance) }}.</p>
+  <div class="row"><a class="btn" href="/install">mulai install</a></div>
+  {% elif p.status == "expired" %}
+  <p class="alert">Invoice kedaluwarsa. Buat topup baru.</p>
+  <div class="row"><a class="btn ghost" href="/topup">topup lagi</a></div>
+  {% else %}
+  <p class="muted">Invoice {{ p.status }}.</p>
+  <div class="row"><a class="btn ghost" href="/topup">topup lagi</a></div>
+  {% endif %}
+</section>

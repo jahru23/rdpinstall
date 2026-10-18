@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Topup saldo — RDP Installer{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <a class="btn ghost small" href="/">dashboard</a>
+  <span class="who">{{ user.display_name() }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="cardhead">
+    <h2>Topup saldo</h2>
+    <span class="muted small">saldo sekarang {{ rupiah(balance) }}</span>
+  </div>
+  <p class="muted small">Pembayaran lewat QRIS (PayGate). Biaya gateway ditambahkan di atas
+  nominal, jadi yang Anda bayar sedikit lebih besar dari saldo yang masuk — nominal saldo
+  yang dikreditkan tetap sesuai pilihan Anda.</p>
+
+  {% if !notice.is_empty() %}<p class="ok-alert">{{ notice }}</p>{% endif %}
+  {% if !error.is_empty() %}<p class="alert">{{ error }}</p>{% endif %}
+
+  <div class="row presets">
+    {% for v in presets %}
+    <form method="post" action="/topup">
+      <input type="hidden" name="amount" value="{{ v }}">
+      <button class="btn ghost" type="submit">{{ rupiah(v) }}</button>
+    </form>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="/topup" class="form">
+    <label>
+      <span class="label">Nominal lain (Rp)</span>
+      <input type="number" name="amount" min="{{ min }}" max="{{ max }}" step="1000"
+             value="{{ min }}" inputmode="numeric" required>
+    </label>
+    <p class="muted small">Minimal {{ rupiah(min) }}, maksimal {{ rupiah(max) }}.</p>
+    <div class="row"><button class="btn" type="submit">buat QRIS</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="cardhead"><h2>Riwayat topup</h2><span class="muted small">10 terakhir</span></div>
+  {% if payments.is_empty() %}
+  <p class="empty">Belum ada topup.</p>
+  {% else %}
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Nominal</th><th>Dibayar</th><th>Status</th><th>Dibuat</th><th></th></tr></thead>
+    <tbody>
+    {% for p in payments %}
+      <tr>
+        <td>{{ rupiah(p.amount) }}</td>
+        <td class="dim">{{ rupiah(p.total_amount) }}</td>
+        <td><span class="badge {{ p.status_class() }}">{{ p.status }}</span></td>
+        <td class="dim">{{ dt(p.created_at) }}</td>
+        <td><a class="btn ghost small" href="/topup/{{ p.reference }}">buka</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
