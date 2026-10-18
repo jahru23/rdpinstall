@@ -9,7 +9,9 @@ mod error;
 mod jobs;
 mod models;
 mod paygate;
+mod reinstall;
 mod routes;
+mod ssh;
 mod upcloud;
 mod views;
 
