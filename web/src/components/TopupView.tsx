@@ -83,7 +83,7 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
               <QrCode className="w-5 h-5 text-orange-500 flex-shrink-0" />
               <span>Isi Saldo via QRIS</span>
             </h1>
-            <p className="text-xs text-[#71717a] mt-0.5 truncate">GoPay Merchant (GoBiz) · Real-time 24 Jam</p>
+            <p className="text-xs text-[#71717a] mt-0.5 truncate">QRIS Otomatis (Semua Bank & E-Wallet) · Real-time 24 Jam</p>
           </div>
           <div className="text-right flex-shrink-0">
             <span className="text-[11px] text-[#71717a] block">Saldo Anda</span>

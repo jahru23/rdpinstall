@@ -51,18 +51,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           ) : (
             <p className="text-xs text-red-600">Telegram Bot belum terkonfigurasi.</p>
           )}
-
-          {/* Dev login fallback */}
-          <div className="mt-4 pt-4 border-t border-[#e8e4dc]">
-            <form method="post" action="/auth/dev">
-              <button
-                type="submit"
-                className="text-xs text-[#71717a] hover:text-[#0f172a] underline"
-              >
-                Masuk sebagai Dev (hanya di mode pengujian)
-              </button>
-            </form>
-          </div>
         </div>
       </div>
     </div>

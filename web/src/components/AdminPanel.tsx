@@ -610,8 +610,8 @@ export const AdminPanel: React.FC = () => {
                 </span>
               </div>
               <div className="p-3 bg-[#f4f1ea] rounded-xl border border-[#e2ded4]">
-                <span className="text-[#71717a] block">Script Reinstall Upstream</span>
-                <span className="font-mono font-bold text-xs text-[#0f172a]">bin456789/reinstall.sh</span>
+                <span className="text-[#71717a] block">Engine Installer</span>
+                <span className="font-mono font-bold text-xs text-[#0f172a]">JayStore rdpinstall v1.0</span>
               </div>
             </div>
           </div>

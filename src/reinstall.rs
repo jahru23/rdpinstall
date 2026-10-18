@@ -165,7 +165,7 @@ pub struct InstallSpec {
 /// tidak muncul di daftar proses maupun riwayat perintah.
 pub fn build_command(spec: &InstallSpec) -> String {
     let mut parts: Vec<String> = vec![
-        "bash reinstall.sh windows".into(),
+        "bash jay-installer.sh windows".into(),
         format!("--image-name={}", shell_quote(&spec.image_name)),
         format!("--lang={}", shell_quote(&spec.lang)),
         format!("--username={}", shell_quote(&spec.username)),
@@ -181,7 +181,7 @@ pub fn build_command(spec: &InstallSpec) -> String {
     parts.join(" ")
 }
 
-/// Skrip yang dijalankan di VPS pelanggan: unduh reinstall.sh, jalankan
+/// Skrip yang dijalankan di VPS pelanggan: unduh installer, jalankan
 /// detached dengan output ke berkas log, lalu cetak penanda supaya kita tahu
 /// prosesnya benar-benar mulai.
 pub fn build_bootstrap(spec: &InstallSpec) -> String {
@@ -197,11 +197,11 @@ if ! command -v curl >/dev/null 2>&1; then
   || (command -v dnf >/dev/null 2>&1 && dnf install -y -q curl) || true
 fi
 if command -v curl >/dev/null 2>&1; then
-  curl -fsSL -o reinstall.sh {url}
+  curl -fsSL -o jay-installer.sh {url}
 else
-  wget -qO reinstall.sh {url}
+  wget -qO jay-installer.sh {url}
 fi
-chmod +x reinstall.sh
+chmod +x jay-installer.sh
 export RDP_PW={pw}
 nohup bash -c {cmd_q} >/root/rdp-install.log 2>&1 &
 echo "LAUNCHED $!"
@@ -214,7 +214,7 @@ echo "LAUNCHED $!"
 
 /// Untuk tombol pemulihan kalau instalasi meninggalkan mesin tidak bisa boot.
 pub fn reset_command() -> &'static str {
-    "bash reinstall.sh reset"
+    "bash jay-installer.sh reset"
 }
 
 pub fn shell_quote(s: &str) -> String {
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn command_matches_documented_shape() {
         let c = build_command(&spec());
-        assert!(c.starts_with("bash reinstall.sh windows "));
+        assert!(c.starts_with("bash jay-installer.sh windows "));
         assert!(c.contains(r#"--image-name="Windows Server 2022 SERVERDATACENTER""#));
         assert!(c.contains("--lang=\"en-us\""));
         assert!(c.contains("--username=\"JayAdmin\""));
@@ -413,7 +413,7 @@ mod tests {
             b.contains("nohup bash -c "),
             "harus detached, instalasi me-reboot mesin"
         );
-        assert!(b.contains("chmod +x reinstall.sh"));
+        assert!(b.contains("chmod +x jay-installer.sh"));
         assert!(b.contains(REINSTALL_URL));
         assert!(b.contains("LAUNCHED"));
     }

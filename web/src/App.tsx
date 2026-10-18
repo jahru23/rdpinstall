@@ -192,9 +192,9 @@ export const App: React.FC = () => {
       {/* Footer */}
       <footer className="border-t border-[#e8e4dc] bg-[#f4f1ea]/60 py-6 px-4 text-center text-xs text-[#71717a]">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span>rdpinstall · Instalasi Windows di VPS Anda Sendiri</span>
-          <span className="font-mono text-[11px] text-[#a1a1aa]">
-            Universal KVM Deployment · Pure Open Source reinstall.sh
+          <span className="font-semibold text-[#0f172a]">JayStore · rdpinstall</span>
+          <span className="font-mono text-[11px] text-[#71717a]">
+            Universal KVM Windows Deployment Platform
           </span>
         </div>
       </footer>

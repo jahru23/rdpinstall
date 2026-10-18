@@ -386,7 +386,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               )}
 
               <p className="text-[11px] sm:text-xs text-[#71717a] mt-1.5">
-                Dapatkan kode voucer dari admin atau bot Telegram jaystore.
+                Dapatkan kode voucer dari JayStore (@InstallXJayBot).
               </p>
             </div>
 
@@ -422,7 +422,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 <span>Kredensial SSH VPS Linux</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
-                Akses root diperlukan untuk menjalankan skrip reinstallation.
+                Akses root diperlukan untuk menjalankan proses instalasi Windows otomatis.
               </p>
             </div>
 
@@ -749,7 +749,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
           <span>Keamanan & Jaminan Operasional</span>
         </div>
         <p>
-          Installer bekerja langsung dari server ke server menggunakan skrip resmi <code className="font-mono text-[#0f172a]">reinstall.sh</code>. Password SSH Anda tidak disimpan ke database permanen dan otomatis dibersihkan saat Windows siap.
+          Installer JayStore bekerja langsung secara otomatis dan terenkripsi. Password SSH VPS Anda tidak disimpan secara permanen dan otomatis dibersihkan dari server saat Windows selesai dipasang.
         </p>
       </div>
     </div>

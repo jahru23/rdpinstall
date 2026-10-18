@@ -184,7 +184,7 @@ async fn run(state: SharedState, job_id: i64) -> anyhow::Result<()> {
         job_id,
         "mengirim skrip installer",
         25,
-        "reinstall.sh dijalankan detached di mesin Anda",
+        "Proses instalasi Windows otomatis mulai berjalan di mesin Anda",
     )
     .await?;
     let spec = InstallSpec {

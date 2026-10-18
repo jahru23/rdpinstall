@@ -297,7 +297,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
 
               <p className="text-[11px] text-[#a1a1aa] text-center font-mono">
-                rdpinstall v0.1.0 · Universal KVM
+                JayStore rdpinstall · Universal KVM
               </p>
             </div>
           </div>
