@@ -27,6 +27,14 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
 
   // Form State
   const [voucher, setVoucher] = useState<string>('');
+  const [voucherStatus, setVoucherStatus] = useState<{
+    checked: boolean;
+    valid: boolean;
+    message: string;
+    note?: string;
+  } | null>(null);
+  const [validatingVoucher, setValidatingVoucher] = useState<boolean>(false);
+
   const [host, setHost] = useState<string>('');
   const [sshPort, setSshPort] = useState<string>('22');
   const [sshUser, setSshUser] = useState<string>('root');
@@ -41,6 +49,54 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
   const [rdpPort, setRdpPort] = useState<string>('3389');
 
   const selectedEditionObj = EDITIONS.find((e) => e.key === edition) || EDITIONS[0];
+
+  const checkVoucherApi = async (codeToCheck?: string): Promise<boolean> => {
+    const code = (codeToCheck || voucher).trim().toUpperCase();
+    if (!code) {
+      setError('Silakan masukkan kode voucer.');
+      setVoucherStatus(null);
+      return false;
+    }
+    setValidatingVoucher(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/voucher/validate?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (data.valid) {
+        setVoucherStatus({
+          checked: true,
+          valid: true,
+          message: data.message || 'Kode voucer valid dan siap digunakan.',
+          note: data.note,
+        });
+        return true;
+      } else {
+        setVoucherStatus({
+          checked: true,
+          valid: false,
+          message: data.message || 'Kode voucer tidak valid.',
+        });
+        setError(data.message || 'Kode voucer tidak valid.');
+        return false;
+      }
+    } catch {
+      setError('Gagal memverifikasi voucer dengan server.');
+      return false;
+    } finally {
+      setValidatingVoucher(false);
+    }
+  };
+
+  const handleStep1Next = async () => {
+    if (voucherStatus?.valid && voucherStatus.checked) {
+      setStep(2);
+      return;
+    }
+    const ok = await checkVoucherApi();
+    if (ok) {
+      setStep(2);
+    }
+  };
 
   const validateStep = (currentStep: number): boolean => {
     setError('');
@@ -225,7 +281,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               <label htmlFor="voucher" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
                 Kode Voucer
               </label>
-              <div className="relative">
+              <div className="flex gap-2">
                 <input
                   id="voucher"
                   name="voucher"
@@ -233,11 +289,52 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   required
                   placeholder="RDP-XXXX-XXXX"
                   value={voucher}
-                  onChange={(e) => setVoucher(e.target.value.toUpperCase())}
-                  className="input-bone w-full px-3.5 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg font-mono tracking-wider uppercase font-bold placeholder:font-normal placeholder:tracking-normal"
+                  onChange={(e) => {
+                    setVoucher(e.target.value.toUpperCase());
+                    setVoucherStatus(null);
+                    setError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleStep1Next();
+                    }
+                  }}
+                  className={`input-bone flex-1 px-3.5 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg font-mono tracking-wider uppercase font-bold placeholder:font-normal placeholder:tracking-normal ${
+                    voucherStatus?.valid ? 'border-emerald-500 bg-emerald-50/40 text-emerald-900' : ''
+                  }`}
                   autoFocus
                 />
+                <button
+                  type="button"
+                  disabled={validatingVoucher || !voucher.trim()}
+                  onClick={() => checkVoucherApi()}
+                  className="px-4 py-2.5 rounded-lg border border-[#e8e4dc] bg-white hover:border-[#0f172a] text-xs font-bold text-[#0f172a] flex items-center gap-1.5 transition-all disabled:opacity-50 flex-shrink-0"
+                  title="Periksa validitas kode voucer"
+                >
+                  {validatingVoucher ? (
+                    <div className="w-3.5 h-3.5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-orange-500" />
+                  )}
+                  <span>Cek</span>
+                </button>
               </div>
+
+              {voucherStatus?.valid && (
+                <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold">{voucherStatus.message}</span>
+                    {voucherStatus.note && (
+                      <span className="block text-[11px] text-emerald-700 mt-0.5">
+                        Catatan: {voucherStatus.note}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] sm:text-xs text-[#71717a] mt-1.5">
                 Dapatkan kode voucer dari admin atau bot Telegram jaystore.
               </p>
@@ -246,11 +343,21 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
             <div className="pt-3 sm:pt-4 flex justify-end">
               <button
                 type="button"
-                onClick={handleNext}
+                disabled={validatingVoucher}
+                onClick={handleStep1Next}
                 className="btn-orange w-full sm:w-auto px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
-                <span>Lanjutkan</span>
-                <ArrowRight className="w-4 h-4" />
+                {validatingVoucher ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Memvalidasi...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Lanjutkan</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </div>

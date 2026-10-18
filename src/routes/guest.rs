@@ -300,3 +300,73 @@ pub fn guest_user() -> User {
         last_seen_at: 0,
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct VoucherQuery {
+    #[serde(default)]
+    pub code: String,
+}
+
+pub async fn validate_voucher(
+    State(state): State<SharedState>,
+    axum::extract::Query(q): axum::extract::Query<VoucherQuery>,
+) -> Response {
+    let code = q.code.trim().to_uppercase();
+    if code.is_empty() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            Json(json!({ "valid": false, "message": "Kode voucer wajib diisi." })),
+        )
+            .into_response();
+    }
+
+    let row = sqlx::query_as::<_, crate::models::Voucher>(
+        "SELECT code, created_at, used_at, used_job_id, used_host, revoked, note
+         FROM vouchers WHERE code = ?",
+    )
+    .bind(&code)
+    .fetch_optional(&state.pool)
+    .await;
+
+    match row {
+        Ok(Some(v)) => {
+            if v.revoked != 0 {
+                Json(json!({
+                    "valid": false,
+                    "code": code,
+                    "message": "Kode voucer ini telah dicabut."
+                }))
+                .into_response()
+            } else if v.used_at != 0 {
+                Json(json!({
+                    "valid": false,
+                    "code": code,
+                    "message": "Kode voucer ini sudah pernah digunakan."
+                }))
+                .into_response()
+            } else {
+                Json(json!({
+                    "valid": true,
+                    "code": code,
+                    "message": "Kode voucer valid dan siap digunakan.",
+                    "note": v.note
+                }))
+                .into_response()
+            }
+        }
+        Ok(None) => Json(json!({
+            "valid": false,
+            "code": code,
+            "message": "Kode voucer tidak ditemukan di sistem."
+        }))
+        .into_response(),
+        Err(e) => AppError::Db(e).into_response(),
+    }
+}
+
+pub async fn validate_voucher_post(
+    State(state): State<SharedState>,
+    Form(f): Form<VoucherQuery>,
+) -> Response {
+    validate_voucher(State(state), axum::extract::Query(f)).await
+}

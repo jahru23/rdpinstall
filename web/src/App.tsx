@@ -5,7 +5,7 @@ import { GuestWizard } from './components/GuestWizard';
 import { JobMonitor } from './components/JobMonitor';
 import { DashboardView } from './components/DashboardView';
 import { TopupView } from './components/TopupView';
-import { AdminVouchers } from './components/AdminVouchers';
+import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
 
 export const App: React.FC = () => {
@@ -28,7 +28,7 @@ export const App: React.FC = () => {
       setTab('topup');
     } else if (path === '/dashboard') {
       setTab('dashboard');
-    } else if (path === '/admin/vouchers') {
+    } else if (path.startsWith('/admin')) {
       setTab('admin');
     }
 
@@ -122,7 +122,7 @@ export const App: React.FC = () => {
             }}
           />
         ) : currentTab === 'admin' && user?.is_admin ? (
-          <AdminVouchers />
+          <AdminPanel />
         ) : (
           <GuestWizard
             onSuccess={(token) => {

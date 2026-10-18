@@ -260,3 +260,39 @@ impl TelegramAuth {
         .collect()
     }
 }
+
+#[derive(Debug, Clone, FromRow, Serialize)]
+pub struct AdminUserRow {
+    pub id: i64,
+    pub tg_id: Option<i64>,
+    pub username: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub photo_url: String,
+    pub banned: i64,
+    pub created_at: i64,
+    pub last_seen_at: i64,
+    pub balance: i64,
+    pub job_count: i64,
+}
+
+#[derive(Debug, Clone, FromRow, Serialize)]
+pub struct AdminPaymentRow {
+    pub id: i64,
+    pub user_id: i64,
+    pub gateway: String,
+    #[sqlx(rename = "ref")]
+    pub reference: String,
+    pub gateway_id: String,
+    pub amount: i64,
+    pub total_amount: i64,
+    pub status: String,
+    pub qr_string: String,
+    pub pay_url: String,
+    pub txn_id: String,
+    pub created_at: i64,
+    pub paid_at: i64,
+    pub expires_at: i64,
+    pub user_username: Option<String>,
+    pub user_first_name: Option<String>,
+}

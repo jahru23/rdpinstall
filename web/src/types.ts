@@ -24,6 +24,7 @@ export interface JobEvent {
 
 export interface JobData {
   id: number;
+  user_id: number;
   status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
   phase: string;
   progress: number;
@@ -64,4 +65,50 @@ export interface VoucherItem {
   used_host: string;
   revoked: number;
   note: string;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_jobs: number;
+  active_jobs: number;
+  done_jobs: number;
+  failed_jobs: number;
+  total_vouchers: number;
+  free_vouchers: number;
+  total_revenue: number;
+  total_balance: number;
+  price_per_install: number;
+}
+
+export interface AdminUser {
+  id: number;
+  tg_id?: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  photo_url: string;
+  banned: number;
+  created_at: number;
+  last_seen_at: number;
+  balance: number;
+  job_count: number;
+}
+
+export interface AdminPayment {
+  id: number;
+  user_id: number;
+  gateway: string;
+  reference: string;
+  gateway_id: string;
+  amount: number;
+  total_amount: number;
+  status: string;
+  qr_string: string;
+  pay_url: string;
+  txn_id: string;
+  created_at: number;
+  paid_at: number;
+  expires_at: number;
+  user_username?: string;
+  user_first_name?: string;
 }

@@ -80,13 +80,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => setTab('admin')}
                   className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap min-h-[36px] ${
                     currentTab === 'admin'
-                      ? 'bg-[#0f172a] text-white shadow-sm'
-                      : 'text-[#52525b] hover:bg-[#f4f1ea] hover:text-[#0f172a]'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80'
                   }`}
                   title="Panel Admin"
                 >
-                  <Shield className="w-3.5 h-3.5 flex-shrink-0 text-amber-500" />
-                  <span className="hidden sm:inline">Admin</span>
+                  <Shield className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Admin</span>
                 </button>
               )}
 
