@@ -244,16 +244,14 @@ impl Client {
             .map_err(|e| Error::Decode(e.to_string()))?
             .ok_or_else(|| Error::Decode("respons tanpa data.invoice".into()))?;
 
-        let qr_png_url = data
-            .get("qris_png_url")
-            .and_then(|v| v.as_str())
-            .map(|s| self.absolute(s))
-            .unwrap_or_default();
-        let qr_url = data
-            .get("qris_url")
-            .and_then(|v| v.as_str())
-            .map(|s| self.absolute(s))
-            .unwrap_or_default();
+        let (qr_png_url, qr_url) = if !invoice.qris_id.is_empty() {
+            (
+                format!("{}/qr/{}?format=png", self.public_base, invoice.qris_id),
+                format!("{}/qr/{}", self.public_base, invoice.qris_id),
+            )
+        } else {
+            (String::new(), String::new())
+        };
         let pay_url = data
             .pointer("/urls/payment_url")
             .or_else(|| data.get("payment_url"))

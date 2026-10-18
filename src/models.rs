@@ -177,6 +177,7 @@ pub struct Payment {
     pub status: String,
     pub qr_string: String,
     pub pay_url: String,
+    #[serde(skip_serializing)]
     pub txn_id: String,
     pub created_at: i64,
     pub paid_at: i64,

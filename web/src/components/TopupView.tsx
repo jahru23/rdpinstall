@@ -1,6 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserProfile } from '../types';
-import { Wallet, QrCode, AlertCircle, CheckCircle2, ArrowRight, ExternalLink, X } from 'lucide-react';
+import { QrCode, AlertCircle, CheckCircle2, ArrowRight, ExternalLink } from 'lucide-react';
+
+type PaymentStatus = {
+  status: string;
+  balance: number;
+  fee_note: string;
+  payment: { qr_string: string; pay_url: string; amount: number; total_amount: number; expires_at: number };
+};
+
+const isPaid = (status: unknown) => status === 'paid';
+const isExpired = (status: unknown) => ['expired', 'cancelled', 'failed'].includes(String(status));
+const getErrorMessage = (body: string) => {
+  try { const data = JSON.parse(body); return data?.error?.message || data?.error || 'Gagal membuat tagihan QRIS.'; }
+  catch { return 'Gagal membuat tagihan QRIS.'; }
+};
+const qrImageUrl = (raw: string) => {
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  return `https://pg-v1.jaystore.top${raw.startsWith('/') ? '' : '/'}${raw}`;
+};
+
+export const topupStatusHelpers = { isPaid, isExpired, qrImageUrl, getErrorMessage };
 
 interface TopupViewProps {
   user: UserProfile;
@@ -12,9 +33,28 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [invoice, setInvoice] = useState<any>(null);
+  const [payment, setPayment] = useState<PaymentStatus | null>(null);
   const [invoiceStatus, setInvoiceStatus] = useState<string>('pending');
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const presets = [2000, 10000, 20000, 50000];
+
+  const refreshPayment = async (reference: string) => {
+    const res = await fetch(`/topup/${encodeURIComponent(reference)}/status`, {
+      headers: { Accept: 'application/json' }, cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`Gagal memeriksa status tagihan (${res.status}).`);
+    const data = await res.json();
+    const next: PaymentStatus = data;
+    setPayment(next);
+    if (isPaid(next.status)) {
+      setInvoiceStatus('paid');
+      onSuccess();
+    } else if (isExpired(next.status)) {
+      setInvoiceStatus('expired');
+    }
+    return next;
+  };
 
   const handleCreateInvoice = async () => {
     if (amount < 2000) {
@@ -34,13 +74,28 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
       });
 
       if (res.redirected) {
-        const ref = res.url.split('/topup/')[1];
+        const url = new URL(res.url, window.location.origin);
+        const ref = decodeURIComponent(url.pathname.split('/').filter(Boolean).at(-1) || '');
+        if (!ref || ref === 'masuk') {
+          setError('Sesi login berakhir. Silakan masuk kembali.');
+          return;
+        }
         setInvoice({ reference: ref, amount });
+        setPayment(null);
         setInvoiceStatus('pending');
-      } else {
+        try { await refreshPayment(ref); } catch (err: any) { setError(err?.message || 'Gagal memuat tagihan.'); }
+      } else if (res.ok) {
         const text = await res.text();
-        const m = text.match(/class="alert">([^<]+)/);
-        setError(m ? m[1].trim() : 'Gagal membuat tagihan QRIS.');
+        if (res.url.includes('/topup/')) {
+          const ref = decodeURIComponent(new URL(res.url).pathname.split('/').filter(Boolean).at(-1) || '');
+          setInvoice({ reference: ref, amount });
+          setInvoiceStatus('pending');
+          try { await refreshPayment(ref); } catch (err: any) { setError(err?.message || 'Gagal memuat tagihan.'); }
+        } else {
+          setError(getErrorMessage(text));
+        }
+      } else {
+        setError(getErrorMessage(await res.text()));
       }
     } catch (err: any) {
       setError(err?.message || 'Gagal menghubungi server.');
@@ -51,28 +106,31 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
 
   useEffect(() => {
     if (!invoice || invoiceStatus !== 'pending') return;
+    const poll = async () => {
+      try { await refreshPayment(invoice.reference); }
+      catch (err: any) { setError(err?.message || 'Gagal memeriksa status pembayaran.'); }
+    };
+    void poll();
+    intervalRef.current = setInterval(() => { void poll(); }, 10_000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+  }, [invoice?.reference, invoiceStatus]);
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/topup/${invoice.reference}/status`);
-        if (res.ok) {
-          const text = await res.text();
-          if (text.includes('badge ok') || text.includes('Pembayaran sukses') || text.includes('paid')) {
-            setInvoiceStatus('paid');
-            clearInterval(interval);
-            onSuccess();
-          } else if (text.includes('expired') || text.includes('cancelled')) {
-            setInvoiceStatus('expired');
-            clearInterval(interval);
-          }
-        }
-      } catch {
-        // Ignore
-      }
-    }, 4000);
+  useEffect(() => {
+    if (invoice) window.history.replaceState({}, '', `/topup/${encodeURIComponent(invoice.reference)}`);
+    else if (window.location.pathname.startsWith('/topup/')) window.history.replaceState({}, '', '/topup');
+  }, [invoice?.reference]);
 
-    return () => clearInterval(interval);
-  }, [invoice, invoiceStatus, onSuccess]);
+  useEffect(() => {
+    const pathRef = window.location.pathname.startsWith('/topup/')
+      ? decodeURIComponent(window.location.pathname.split('/').filter(Boolean).at(-1) || '')
+      : '';
+    if (!pathRef) return;
+    setInvoice({ reference: pathRef, amount });
+    void refreshPayment(pathRef).catch((err: any) => setError(err?.message || 'Tagihan tidak ditemukan.'));
+  }, []);
 
   return (
     <div className="max-w-xl w-full mx-auto space-y-5 sm:space-y-6">
@@ -100,48 +158,37 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
 
         {invoice ? (
           <div className="text-center space-y-4 py-2">
-            <div className="p-3 sm:p-4 rounded-xl bg-[#f4f1ea] border border-[#e2ded4] inline-block max-w-full">
-              {invoiceStatus === 'paid' ? (
-                <div className="py-6 px-4 space-y-2 text-center text-emerald-800">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-                  <p className="font-bold text-sm">Pembayaran Berhasil Diterima!</p>
-                  <p className="text-xs">Saldo Anda telah ditambahkan otomatis.</p>
-                </div>
-              ) : (
-                <>
-                  <p className="text-xs font-bold text-[#71717a] uppercase mb-2">Scan QRIS Ini:</p>
-                  <img
-                    src={`https://pg-v1.jaystore.top/qr/PG-${invoice.reference}?format=png`}
-                    alt="QRIS"
-                    className="w-48 sm:w-56 h-48 sm:h-56 mx-auto rounded-lg bg-white p-2 border border-[#e2ded4] shadow-xs max-w-full object-contain"
-                    onError={(e: any) => {
-                      // Fallback if needed
-                      e.target.src = `/topup/${invoice.reference}`;
-                    }}
-                  />
-                  <p className="text-[11px] text-[#71717a] mt-2">
-                    Total: <b className="text-[#0f172a]">Rp{amount.toLocaleString('id-ID')}</b>
-                  </p>
-                </>
-              )}
-            </div>
-
-            {invoiceStatus === 'pending' && (
-              <p className="text-xs text-[#71717a] flex items-center justify-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-                <span>Menunggu verifikasi pembayaran otomatis (cek tiap 4s)...</span>
-              </p>
+            {invoiceStatus === 'paid' ? (
+              <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+                <p className="font-bold text-sm mt-2">Pembayaran Berhasil Diterima</p>
+                <p className="text-xs mt-1">Saldo akun: Rp{(payment?.balance ?? user.balance).toLocaleString('id-ID')}</p>
+                <p className="text-xs mt-1">{payment?.fee_note || 'Saldo sudah dikreditkan.'}</p>
+              </div>
+            ) : (
+              <div className="p-3 sm:p-4 rounded-xl bg-[#f4f1ea] border border-[#e2ded4] inline-block max-w-full">
+                {payment?.payment?.qr_string ? (
+                  <>
+                    <p className="text-xs font-bold text-[#71717a] uppercase mb-2">Scan QRIS Ini:</p>
+                    <img src={qrImageUrl(payment.payment.qr_string)} alt="QRIS" className="w-48 sm:w-56 h-48 sm:h-56 mx-auto rounded-lg bg-white p-2 border border-[#e2ded4] shadow-xs max-w-full object-contain" />
+                    <p className="text-[11px] text-[#71717a] mt-2">Total: <b className="text-[#0f172a]">Rp{(payment.payment.total_amount || amount).toLocaleString('id-ID')}</b></p>
+                    {payment.payment.expires_at > 0 && <p className="text-[11px] text-[#71717a] mt-1">Berlaku sampai {new Date(payment.payment.expires_at * 1000).toLocaleString('id-ID')}</p>}
+                  </>
+                ) : payment?.payment?.pay_url ? (
+                  <div className="p-4 max-w-sm">
+                    <AlertCircle className="w-8 h-8 text-orange-500 mx-auto" />
+                    <p className="font-bold text-sm mt-2">QRIS tidak tersedia langsung</p>
+                    <a className="inline-flex mt-3 text-sm font-bold text-orange-700 underline" href={payment.payment.pay_url} target="_blank" rel="noreferrer">Buka halaman pembayaran <ExternalLink className="w-4 h-4 ml-1" /></a>
+                  </div>
+                ) : (
+                  <div className="p-5 max-w-sm"><AlertCircle className="w-8 h-8 text-orange-500 mx-auto" /><p className="font-bold text-sm mt-2">QR pembayaran belum tersedia</p><p className="text-xs text-[#71717a] mt-1">Status terus diperiksa. Jika masalah berlanjut, kembali dan buat invoice baru.</p></div>
+                )}
+              </div>
             )}
-
-            <div>
-              <button
-                type="button"
-                onClick={() => setInvoice(null)}
-                className="text-xs font-bold text-[#71717a] hover:text-[#0f172a] underline"
-              >
-                Kembali / Pilih Nominal Lain
-              </button>
-            </div>
+            {invoiceStatus === 'pending' && <p className="text-xs text-[#71717a] flex items-center justify-center gap-2"><span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />Menunggu konfirmasi gateway; status server dicek tiap 10 detik.</p>}
+            {invoiceStatus === 'expired' && <p className="text-xs text-red-700">Invoice kedaluwarsa atau dibatalkan. Buat tagihan baru.</p>}
+            {error && <p className="text-xs text-red-700">{error}</p>}
+            <button type="button" onClick={() => { setInvoice(null); setPayment(null); setError(''); }} className="text-xs font-bold text-[#71717a] hover:text-[#0f172a] underline">Kembali / Pilih Nominal Lain</button>
           </div>
         ) : (
           <div className="space-y-5">

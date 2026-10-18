@@ -148,14 +148,18 @@ pub async fn create(
 }
 
 pub async fn detail(
-    State(_state): State<SharedState>,
+    State(state): State<SharedState>,
     user: MaybeUser,
-    Path(_reference): Path<String>,
+    Path(reference): Path<String>,
 ) -> Response {
-    let MaybeUser(Some(_user)) = user else {
+    let MaybeUser(Some(user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    render_spa().await
+    match load(state, user.id, &reference).await {
+        Ok(Some(_)) => render_spa().await,
+        Ok(None) => AppError::NotFound.into_response(),
+        Err(e) => e.into_response(),
+    }
 }
 
 /// Dipanggil berkala oleh halaman detail: nilai status ke gateway lalu kirim data json.
@@ -184,37 +188,71 @@ pub async fn status(
                 Some(inv) => Ok(inv),
                 None => c.invoice(&row.gateway_id).await,
             };
-            if let Ok(inv) = fetched {
-                if let Err(e) = settle(&state, &row, &inv).await {
-                    tracing::warn!("settle {} gagal: {e}", row.reference);
+            match fetched {
+                Ok(inv) => {
+                    if inv.id != row.gateway_id || inv.reference_id != row.reference {
+                        tracing::error!(
+                            "topup {} gateway invoice identity/reference mismatch",
+                            row.reference
+                        );
+                        return AppError::bad(
+                            "Identitas tagihan gateway tidak cocok; pembayaran tidak dikreditkan.",
+                        )
+                        .into_response();
+                    }
+                    if let Err(e) = settle(&state, &row, &inv).await {
+                        tracing::warn!("settle {} gagal: {e}", row.reference);
+                    }
                 }
+                Err(e) => tracing::warn!("status topup {} gagal diperiksa: {e}", row.reference),
             }
         }
     }
-
+    let row = match load(state.clone(), user.id, &reference).await {
+        Ok(Some(r)) => r,
+        Ok(None) => return AppError::NotFound.into_response(),
+        Err(e) => return e.into_response(),
+    };
+    if !matches!(
+        row.status.as_str(),
+        "pending" | "paid" | "expired" | "cancelled" | "failed"
+    ) {
+        return AppError::bad("Status tagihan tidak dikenal.").into_response();
+    }
+    let qr_string = if row.status == "pending" {
+        row.qr_string.clone()
+    } else {
+        String::new()
+    };
+    let pay_url = if row.status == "pending" {
+        row.pay_url.clone()
+    } else {
+        String::new()
+    };
+    let public_payment = json!({
+        "reference": row.reference,
+        "amount": row.amount,
+        "total_amount": row.total_amount,
+        "status": row.status,
+        "qr_string": qr_string,
+        "pay_url": pay_url,
+        "created_at": row.created_at,
+        "paid_at": row.paid_at,
+        "expires_at": row.expires_at,
+    });
     let bal = balance(&state, user.id).await;
     let fee_note = if row.total_amount > row.amount && row.amount > 0 {
         format!(
-            "Ditagih {} (nominal {} + biaya gateway). Saldo yang masuk {}.",
-            crate::views::rupiah(row.total_amount),
+            "Saldo masuk {} (nominal {}) setelah biaya gateway.",
             crate::views::rupiah(row.amount),
-            crate::views::rupiah(row.amount)
-        )
-    } else if row.total_amount > 0 {
-        format!(
-            "Ditagih {}. Saldo yang masuk sebesar itu.",
             crate::views::rupiah(row.total_amount)
         )
     } else {
-        "Nominal ditagih dikonfirmasi gateway sebelum pembayaran.".to_string()
+        format!("Saldo yang masuk: {}.", crate::views::rupiah(row.amount))
     };
-
-    Json(json!({
-        "payment": row,
-        "balance": bal,
-        "fee_note": fee_note,
-        "status": row.status,
-    }))
+    Json(
+        json!({"payment": public_payment,"balance": bal,"fee_note": fee_note,"status": row.status}),
+    )
     .into_response()
 }
 
