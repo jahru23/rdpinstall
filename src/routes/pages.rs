@@ -23,11 +23,7 @@ pub async fn login(State(state): State<SharedState>, MaybeUser(user): MaybeUser)
     if user.is_some() {
         return Redirect::to("/").into_response();
     }
-    let page = LoginPage {
-        bot_username: state.cfg.bot_username.clone(),
-        error: String::new(),
-        dev_login: state.cfg.dev_login,
-    };
+    let page = LoginPage::new(&state.cfg, "");
     render(&page)
 }
 

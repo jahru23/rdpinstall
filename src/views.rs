@@ -6,8 +6,20 @@ use crate::models::{CloudAccount, Job, User};
 #[template(path = "login.html")]
 pub struct LoginPage {
     pub bot_username: String,
+    pub auth_url: String,
     pub error: String,
     pub dev_login: bool,
+}
+
+impl LoginPage {
+    pub fn new(cfg: &crate::config::Config, error: &str) -> Self {
+        Self {
+            bot_username: cfg.bot_username.clone(),
+            auth_url: format!("{}/auth/telegram", cfg.base_url.trim_end_matches('/')),
+            error: error.to_string(),
+            dev_login: cfg.dev_login,
+        }
+    }
 }
 
 #[derive(Template)]

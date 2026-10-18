@@ -10,11 +10,7 @@ use crate::views::LoginPage;
 use crate::SharedState;
 
 fn bad_login(state: &SharedState, msg: &str) -> Response {
-    let page = LoginPage {
-        bot_username: state.cfg.bot_username.clone(),
-        error: msg.to_string(),
-        dev_login: state.cfg.dev_login,
-    };
+    let page = LoginPage::new(&state.cfg, msg);
     let body = page
         .render()
         .unwrap_or_else(|_| "<p>login error</p>".to_string());
