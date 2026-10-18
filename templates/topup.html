@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Topup saldo — RDP Installer{% endblock %}
+{% block title %}Topup saldo · rdpinstall{% endblock %}
 
 {% block topnav %}
 <div class="topnav">
@@ -15,8 +15,7 @@
     <span class="muted small">saldo sekarang {{ rupiah(balance) }}</span>
   </div>
   <p class="muted small">Pembayaran lewat QRIS (PayGate). Biaya gateway ditambahkan di atas
-  nominal, jadi yang Anda bayar sedikit lebih besar dari saldo yang masuk — nominal saldo
-  yang dikreditkan tetap sesuai pilihan Anda.</p>
+  nominal, jadi yang Anda bayar sedikit lebih besar dari saldo yang masuk (nominal saldo yang masuk tetap penuh).</p>
 
   {% if !notice.is_empty() %}<p class="ok-alert">{{ notice }}</p>{% endif %}
   {% if !error.is_empty() %}<p class="alert">{{ error }}</p>{% endif %}
