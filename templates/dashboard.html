@@ -1,72 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — RDP Installer{% endblock %}
+{% block title %}Ringkasan · rdpinstall{% endblock %}
 
 {% block topnav %}
 <div class="topnav">
-  <span class="who">{{ user.display_name() }}{% if !user.handle().is_empty() %} <span class="dim">{{ user.handle() }}</span>{% endif %}</span>
-  <form method="post" action="/logout"><button class="btn ghost small" type="submit">keluar</button></form>
+  {% if is_admin %}<a class="quiet" href="/admin/vouchers">voucer</a>{% endif %}
+  <a class="quiet" href="/topup">saldo</a>
+  <span class="who">{{ user.display_name() }}</span>
+  <form method="post" action="/keluar"><button class="btn tiny quiet" type="submit">keluar</button></form>
 </div>
 {% endblock %}
 
 {% block content %}
-<div class="grid grid-3">
-  <div class="card">
-    <p class="label">Saldo</p>
-    <p class="big">{{ rupiah(balance) }}</p>
-    <div class="row">
-      <a class="btn" href="/topup">topup</a>
-      <a class="btn ghost" href="/topup">riwayat</a>
-    </div>
-  </div>
-
-  <div class="card">
-    <p class="label">Install baru</p>
-    <p class="big">{{ rupiah(price) }}<span class="unit">/install</span></p>
-    <p class="muted small">Buatan UpCloud dari template Windows resmi. Kredensial muncul otomatis setelah RDP siap.</p>
-    <div class="row"><a class="btn" href="/install">mulai</a></div>
-  </div>
-
-  <div class="card">
-    <p class="label">Akun cloud</p>
-    {% if cloud_accounts.is_empty() %}
-    <p class="big muted">belum ada</p>
-    <p class="muted small">Tambahkan API token UpCloud Anda. Token disimpan terenkripsi dan tidak pernah ditampilkan lagi.</p>
-    {% else %}
-    <ul class="list">
-      {% for a in cloud_accounts %}
-      <li><span class="mono">{{ a.provider }}</span> <span class="badge {{ a.status_class() }}">{{ a.status }}</span>
-      {% if !a.credit.is_empty() %}<span class="dim">{{ a.credit }}</span>{% endif %}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
-    <div class="row"><a class="btn ghost" href="/cloud">kelola akun</a></div>
-  </div>
+<div class="cols">
+  <section class="card">
+    <p class="k">Saldo</p>
+    <p class="num">{{ rupiah(balance) }}</p>
+    <a class="btn quiet" href="/topup">isi saldo</a>
+  </section>
+  <section class="card">
+    <p class="k">Sekali pasang</p>
+    <p class="num">{{ rupiah(price) }}</p>
+    <p class="hint">VPS Anda sendiri, provider apa pun yang memberi akses root.</p>
+    <a class="btn" href="/instalasi">pasang sekarang</a>
+  </section>
 </div>
 
 <section class="card">
-  <div class="cardhead">
-    <h2>Job terakhir</h2>
-    <span class="muted small">10 terakhir</span>
+  <div class="head">
+    <h2>Riwayat</h2>
+    <span class="dim small">10 terakhir</span>
   </div>
   {% if jobs.is_empty() %}
-  <p class="empty">Belum ada instalasi. Job yang Anda jalankan akan muncul di sini lengkap dengan progresnya.</p>
+  <p class="empty">Belum ada instalasi. Yang Anda jalankan akan muncul di sini beserta tahapnya.</p>
   {% else %}
-  <div class="tablewrap">
-  <table>
-    <thead><tr><th>#</th><th>Windows</th><th>Status</th><th>Fase</th><th>Host</th><th>Dibuat</th></tr></thead>
-    <tbody>
+  <div class="rows">
     {% for j in jobs %}
-      <tr>
-        <td class="mono"><a href="/jobs/{{ j.id }}">{{ j.id }}</a></td>
-        <td>{{ j.os_label }}{% if !j.zone.is_empty() %} <span class="dim">{{ j.zone }}</span>{% endif %}</td>
-        <td><span class="badge {{ j.status_class() }}">{{ j.status }}</span></td>
-        <td class="dim">{{ j.phase }}{% if j.is_active() %} <span class="mono">{{ j.progress }}%</span>{% endif %}</td>
-        <td class="mono">{{ j.host }}</td>
-        <td class="dim">{{ dt(j.created_at) }}</td>
-      </tr>
+    <a class="row" href="/j/{{ j.id }}">
+      <span class="mono dim">#{{ j.id }}</span>
+      <span class="grow">{{ j.os_label }}</span>
+      <span class="mono dim">{{ j.host }}</span>
+      <span class="badge {{ j.status_class() }}">{{ j.status }}</span>
+      <span class="dim small">{{ dt(j.created_at) }}</span>
+    </a>
     {% endfor %}
-    </tbody>
-  </table>
   </div>
   {% endif %}
 </section>

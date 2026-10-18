@@ -49,10 +49,10 @@ impl IntoResponse for AppError {
         let body = format!(
             r#"<!doctype html><html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{} — rdpinstall</title><link rel="stylesheet" href="/static/style.css"></head>
-<body class="err"><main class="wrap"><div class="card">
-<p class="err-code">{}</p><p class="err-msg">{}</p>
-<p><a class="btn ghost" href="/">kembali</a></p>
+<title>{} · rdpinstall</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><main class="wrap narrow"><div class="card center">
+<p class="code">{}</p><p class="muted">{}</p>
+<p><a class="btn" href="/">kembali ke halaman depan</a></p>
 </div></main></body></html>"#,
             status.as_u16(),
             status.as_u16(),

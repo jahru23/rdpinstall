@@ -8,16 +8,16 @@
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header class="topbar">
-  <a class="brand" href="/">RDP<b>INSTALLER</b></a>
+<header class="bar">
+  <a class="brand" href="/">rdp<span>install</span></a>
   {% block topnav %}{% endblock %}
 </header>
 <main class="wrap">
 {% block content %}{% endblock %}
 </main>
 <footer class="foot">
-  <span>install.jaystore.top</span>
-  <span class="dim">Windows deployment · UpCloud</span>
+  <span>instalasi Windows di VPS Anda sendiri</span>
+  <span class="dim">{% block foot %}linux ke windows{% endblock %}</span>
 </footer>
 </body>
 </html>

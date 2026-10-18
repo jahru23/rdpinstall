@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Pasang Windows · rdpinstall{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <a class="quiet" href="/dashboard">ringkasan</a>
+  <span class="who">saldo {{ rupiah(balance) }}</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="intro">
+  <h1>Pasang Windows di VPS Anda</h1>
+  <p class="lead">Tarif {{ rupiah(price) }} sekali pasang, dipotong dari saldo saat
+  instalasi dimulai. VPS tetap milik Anda, kami hanya menjalankan installer lewat SSH.</p>
+</section>
+
+{% if !error.is_empty() %}<p class="alert">{{ error }}</p>{% endif %}
+{% if !notice.is_empty() %}<p class="ok">{{ notice }}</p>{% endif %}
+
+{% if balance < price %}
+<p class="alert">Saldo tidak cukup untuk tarif {{ rupiah(price) }}. <a href="/topup">Isi saldo dulu</a>.</p>
+{% endif %}
+
+<form method="post" action="/instalasi" class="card form" autocomplete="off">
+  <div class="field">
+    <label for="host">Alamat VPS</label>
+    <input id="host" name="host" type="text" required placeholder="103.150.60.10" spellcheck="false">
+    <p class="hint">IP publik atau domain. VPS Linux dengan akses root.</p>
+  </div>
+
+  <div class="two">
+    <div class="field">
+      <label for="ssh_user">User SSH</label>
+      <input id="ssh_user" name="ssh_user" type="text" value="root">
+    </div>
+    <div class="field">
+      <label for="ssh_port">Port SSH</label>
+      <input id="ssh_port" name="ssh_port" type="number" value="22" inputmode="numeric">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="ssh_pass">Password SSH</label>
+    <input id="ssh_pass" name="ssh_pass" type="password" required autocomplete="off">
+    <p class="hint">Dienkripsi saat disimpan dan dipakai untuk menjalankan installer.
+    Dibuang otomatis begitu instalasi selesai atau setelah 24 jam.</p>
+  </div>
+
+  <div class="two">
+    <div class="field">
+      <label for="edition">Windows</label>
+      <select id="edition" name="edition">
+        {% for e in editions %}
+        <option value="{{ e.key() }}">{{ e.label() }} ({{ e.note() }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="lang">Bahasa</label>
+      <select id="lang" name="lang">
+        <option value="en-us">English</option>
+        <option value="zh-cn">Chinese Simplified</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="two">
+    <div class="field">
+      <label for="rdp_user">User Windows</label>
+      <input id="rdp_user" name="rdp_user" type="text" value="Administrator">
+    </div>
+    <div class="field">
+      <label for="rdp_port">Port RDP</label>
+      <input id="rdp_port" name="rdp_port" type="number" value="3389" inputmode="numeric">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="rdp_pass">Password Windows</label>
+    <input id="rdp_pass" name="rdp_pass" type="password" required autocomplete="new-password">
+    <p class="hint">Minimal 8 karakter, campur huruf besar, kecil, angka, atau simbol.</p>
+  </div>
+
+  <button class="btn" type="submit">periksa dan pasang</button>
+</form>
+{% endblock %}

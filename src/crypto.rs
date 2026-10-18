@@ -58,6 +58,16 @@ pub fn random_token(bytes: usize) -> String {
     hex::encode(buf)
 }
 
+/// Kode acak untuk voucer: tanpa huruf/angka yang mudah tertukar (0/O, 1/I/L).
+pub fn random_code(len: usize) -> String {
+    const ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    let mut buf = vec![0u8; len];
+    getrandom::fill(&mut buf).expect("entropy OS tidak tersedia");
+    buf.iter()
+        .map(|b| ALPHABET[*b as usize % ALPHABET.len()] as char)
+        .collect()
+}
+
 pub fn mask(secret: &str) -> String {
     let n = secret.chars().count();
     if n <= 8 {
@@ -118,6 +128,19 @@ mod tests {
         assert_eq!(a.len(), 64);
         assert_ne!(a, b);
         assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn voucher_codes_avoid_ambiguous_characters() {
+        let c = random_code(8);
+        assert_eq!(c.len(), 8);
+        assert!(c
+            .chars()
+            .all(|ch| ch.is_ascii_uppercase() || ch.is_ascii_digit()));
+        for bad in ['0', 'O', '1', 'I', 'L'] {
+            assert!(!c.contains(bad), "kode {c} memuat karakter ambigu {bad}");
+        }
+        assert_ne!(random_code(8), random_code(8));
     }
 
     #[test]

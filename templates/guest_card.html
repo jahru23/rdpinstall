@@ -1,0 +1,41 @@
+<section class="card">
+  <div class="head">
+    <h2>Job #{{ job.id }} · {{ job.os_label }}</h2>
+    <span class="badge {{ job.status_class() }}">{{ job.status }}</span>
+  </div>
+
+  <div class="rail">
+    {% for s in rail() %}
+    <div class="step {{ s.state }}"><span class="dot"></span><span class="lbl">{{ s.label }}</span></div>
+    {% endfor %}
+  </div>
+
+  <p class="phase">{{ job.phase }}</p>
+
+  <dl class="facts">
+    <div><dt>VPS</dt><dd class="mono">{{ job.host }}:{{ job.ssh_port }}</dd></div>
+    <div><dt>Windows</dt><dd>{{ job.os_label }} · {{ job.lang }}</dd></div>
+    <div><dt>Mulai</dt><dd>{{ dt(job.created_at) }}</dd></div>
+    {% if job.done_at > 0 %}<div><dt>RDP siap</dt><dd>{{ dt(job.done_at) }}</dd></div>{% endif %}
+  </dl>
+
+  {% if !job.error.is_empty() %}
+  <p class="alert">{{ job.error }}</p>
+  {% endif %}
+
+  {% if job.status == "done" %}
+  <div class="creds">
+    <div class="cred"><span class="k">IP</span><span class="v mono" id="g-host">{{ job.host }}</span><button class="btn tiny quiet" type="button" data-copy="g-host">copy</button></div>
+    <div class="cred"><span class="k">Port</span><span class="v mono" id="g-port">{{ job.rdp_port }}</span><button class="btn tiny quiet" type="button" data-copy="g-port">copy</button></div>
+    <div class="cred"><span class="k">User</span><span class="v mono" id="g-user">{{ job.rdp_user }}</span><button class="btn tiny quiet" type="button" data-copy="g-user">copy</button></div>
+    {% if let Some(pw) = password %}
+    <div class="cred"><span class="k">Password</span><span class="v mono" id="g-pw">{{ pw }}</span><button class="btn tiny quiet" type="button" data-copy="g-pw">copy</button></div>
+    {% endif %}
+  </div>
+  <p class="hint">Buka Remote Desktop lalu sambungkan ke alamat di atas. Ganti password setelah masuk pertama.</p>
+  {% endif %}
+
+  {% if running() %}
+  <p class="hint">Proses 20 sampai 60 menit. Halaman ini memperbarui sendiri.</p>
+  {% endif %}
+</section>

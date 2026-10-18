@@ -12,7 +12,7 @@ mod paygate;
 mod reinstall;
 mod routes;
 mod ssh;
-mod upcloud;
+mod validate;
 mod views;
 
 use std::sync::Arc;
