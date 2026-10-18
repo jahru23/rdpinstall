@@ -70,6 +70,18 @@ pub async fn connect(
     password: &str,
     timeout: Duration,
 ) -> Result<Handle<Handler>, Error> {
+    // SSRF guard: resolve DNS and ensure target IP is not private/loopback/link-local
+    if let Ok(addrs) = tokio::net::lookup_host((host, port)).await {
+        for addr in addrs {
+            if crate::validate::is_private_ip(&addr.ip()) {
+                return Err(Error::Connect(
+                    "Alamat IP tujuan adalah jaringan privat/lokal dan ditolak demi keamanan."
+                        .into(),
+                ));
+            }
+        }
+    }
+
     let config = Arc::new(client::Config {
         inactivity_timeout: Some(Duration::from_secs(30)),
         ..Default::default()

@@ -3,21 +3,28 @@
 use crate::error::AppError;
 use crate::reinstall::Edition;
 
+pub fn is_private_ip(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v4) => {
+            v4.is_private()
+                || v4.is_loopback()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.is_broadcast()
+                || v4.octets()[0] == 0
+                || (v4.octets()[0] == 100 && v4.octets()[1] >= 64 && v4.octets()[1] <= 127)
+        }
+        std::net::IpAddr::V6(v6) => v6.is_loopback() || v6.is_unspecified() || v6.is_unique_local(),
+    }
+}
+
 pub fn host(raw: &str) -> Result<String, AppError> {
     let s = raw.trim().trim_matches(|c: char| c == ',' || c == ';');
     if s.is_empty() || s.len() > 253 {
         return Err(AppError::bad("Alamat VPS tidak valid."));
     }
     if let Ok(ip) = s.parse::<std::net::IpAddr>() {
-        let private = match ip {
-            std::net::IpAddr::V4(v4) => {
-                v4.is_private() || v4.is_loopback() || v4.is_link_local() || v4.is_unspecified()
-            }
-            std::net::IpAddr::V6(v6) => {
-                v6.is_loopback() || v6.is_unspecified() || v6.is_unique_local()
-            }
-        };
-        if private {
+        if is_private_ip(&ip) {
             return Err(AppError::bad(
                 "Masukkan IP publik VPS. Alamat privat tidak bisa dipakai.",
             ));
@@ -30,7 +37,18 @@ pub fn host(raw: &str) -> Result<String, AppError> {
     if !ok || s.starts_with('-') || s.ends_with('-') || s.ends_with('.') || s.starts_with('.') {
         return Err(AppError::bad("Alamat VPS tidak valid."));
     }
-    Ok(s.to_lowercase())
+    let s_lower = s.to_lowercase();
+    if s_lower == "localhost"
+        || s_lower.ends_with(".localhost")
+        || s_lower.ends_with(".local")
+        || s_lower.ends_with(".internal")
+        || !s_lower.contains('.')
+    {
+        return Err(AppError::bad(
+            "Masukkan alamat IP publik atau domain publik yang valid.",
+        ));
+    }
+    Ok(s_lower)
 }
 
 pub fn port(raw: &str, default: u16) -> u16 {
@@ -122,6 +140,9 @@ mod tests {
         assert!(host("").is_err());
         assert!(host("-aneh").is_err());
         assert!(host("spasi ada").is_err());
+        assert!(host("localhost").is_err());
+        assert!(host("app.localhost").is_err());
+        assert!(host("server.local").is_err());
     }
 
     #[test]
