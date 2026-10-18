@@ -358,7 +358,7 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Admin Nav Tabs */}
-      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
         {[
           { id: 'overview', label: 'Ringkasan', icon: Activity },
           { id: 'jobs', label: 'Instalasi (Jobs)', icon: Server, badge: stats?.active_jobs },
@@ -370,17 +370,17 @@ export const AdminPanel: React.FC = () => {
             key={id}
             type="button"
             onClick={() => setActiveTab(id as any)}
-            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap min-h-[40px] ${
+            className={`px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all min-h-[42px] ${
               activeTab === id
                 ? 'bg-[#0f172a] text-white shadow-sm'
                 : 'card-bone text-[#52525b] hover:text-[#0f172a] hover:bg-[#f4f1ea]'
             }`}
           >
             <Icon className="w-4 h-4 flex-shrink-0 text-orange-500" />
-            <span>{label}</span>
+            <span className="truncate">{label}</span>
             {badge !== undefined && badge > 0 && (
               <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold flex-shrink-0 ${
                   activeTab === id ? 'bg-orange-500 text-white' : 'bg-[#e8e4dc] text-[#0f172a]'
                 }`}
               >
@@ -470,7 +470,7 @@ export const AdminPanel: React.FC = () => {
         <div className="space-y-4">
           <div className="card-bone p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Filter buttons */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+            <div className="flex flex-wrap items-center gap-1.5">
               {[
                 { id: 'all', label: 'Semua' },
                 { id: 'running', label: 'Aktif/Berjalan' },
@@ -807,7 +807,7 @@ export const AdminPanel: React.FC = () => {
           {/* Vouchers list card */}
           <div className="card-bone p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {[
                   { id: 'all', label: 'Semua' },
                   { id: 'free', label: 'Tersedia' },
