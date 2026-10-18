@@ -106,9 +106,22 @@ has "adj success" "$DIR/adj.json" '"success":true'
 check "saldo terupdate di DB" "[(25000,)]" "$(python3 -c "
 import sqlite3;print(list(sqlite3.connect('$DIR/t.db').execute('select amount from balances where user_id=1')))")"
 
-echo "11. rute terproteksi anonim"
+echo "11. login admin username & password"
+# Password salah
+bad_code=$(curl -s -H "Accept: application/json" -X POST -d "username=admin&password=salah" -o /dev/null -w "%{http_code}" "$B/admin/login")
+check "admin password salah 401" 401 "$bad_code"
+
+# Password benar
+admin_cj="$DIR/admin_cj"
+good_code=$(curl -s -c "$admin_cj" -H "Accept: application/json" -X POST -d "username=admin&password=admin12345" -o "$DIR/admin_login.json" -w "%{http_code}" "$B/admin/login")
+check "admin password benar 200" 200 "$good_code"
+has "login sukses" "$DIR/admin_login.json" '"success":true'
+check "cookie admin" 1 "$(grep -c rdpi_sid "$admin_cj")"
+
+echo "12. rute terproteksi anonim"
 check "anon /dashboard" "303" "$(curl -s -o /dev/null -w '%{http_code}' "$B/dashboard")"
-check "anon /admin" "303" "$(curl -s -o /dev/null -w '%{http_code}' "$B/admin")"
+check "anon /admin/overview JSON" 401 "$(curl -s -H "Accept: application/json" -o /dev/null -w '%{http_code}' "$B/admin/overview")"
+check "anon /admin HTML (SPA login view)" 200 "$(curl -s -o /dev/null -w '%{http_code}' "$B/admin")"
 
 echo
 if [ "$FAILED" -eq 0 ]; then

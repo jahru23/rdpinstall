@@ -38,6 +38,7 @@ pub fn router(state: SharedState) -> Router {
         .route("/topup/{ref}/cancel", post(topup::cancel))
         // admin: panel manajemen seluruh web
         .route("/admin", get(admin::index))
+        .route("/admin/login", get(admin::login_page).post(admin::login))
         .route("/admin/overview", get(admin::overview))
         .route("/admin/jobs", get(admin::jobs))
         .route("/admin/jobs/{id}/cancel", post(admin::cancel_job))

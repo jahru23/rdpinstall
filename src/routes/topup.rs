@@ -362,6 +362,8 @@ mod tests {
             paygate_key: "gw_test".into(),
             paygate_provider: "gobiz".into(),
             admin_tg_ids: vec![],
+            admin_user: "admin".into(),
+            admin_pass: "admin".into(),
             cryptogate_url: String::new(),
             cryptogate_key: String::new(),
         }

@@ -20,6 +20,9 @@ import {
   RefreshCw,
   Terminal,
   Activity,
+  Eye,
+  EyeOff,
+  LogOut,
 } from 'lucide-react';
 import { AdminStats, AdminUser, AdminPayment, JobData, VoucherItem } from '../types';
 
@@ -28,6 +31,14 @@ export const AdminPanel: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [notice, setNotice] = useState<string>('');
+
+  // Admin Auth state
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [adminUsername, setAdminUsername] = useState<string>('admin');
+  const [adminPassword, setAdminPassword] = useState<string>('');
+  const [showAdminPassword, setShowAdminPassword] = useState<boolean>(false);
+  const [loggingIn, setLoggingIn] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>('');
 
   // Data states
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -64,10 +75,20 @@ export const AdminPanel: React.FC = () => {
     try {
       // 1. Overview
       const rOverview = await fetch('/admin/overview', { headers: { Accept: 'application/json' } });
+      if (rOverview.status === 401 || rOverview.status === 403) {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
       if (rOverview.ok) {
         const d = await rOverview.json();
         setStats(d.stats);
         if (Array.isArray(d.vouchers)) setVouchers(d.vouchers);
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
       }
 
       // 2. Jobs
@@ -318,6 +339,126 @@ export const AdminPanel: React.FC = () => {
     return true;
   });
 
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoggingIn(true);
+    setLoginError('');
+    try {
+      const form = new URLSearchParams();
+      form.append('username', adminUsername);
+      form.append('password', adminPassword);
+
+      const res = await fetch('/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+        body: form.toString(),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        loadData();
+      } else {
+        setLoginError(data.message || 'Username atau password salah.');
+      }
+    } catch {
+      setLoginError('Gagal menghubungi server.');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const handleAdminLogout = async () => {
+    await fetch('/keluar', { method: 'POST' });
+    setIsAuthenticated(false);
+    setAdminPassword('');
+  };
+
+  if (!isAuthenticated && !loading) {
+    return (
+      <div className="max-w-md w-full mx-auto py-8 sm:py-16 px-2">
+        <div className="card-bone p-6 sm:p-8">
+          <div className="text-center space-y-2 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white mx-auto shadow-md shadow-orange-500/25">
+              <Shield className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <h1 className="text-xl font-extrabold text-[#0f172a] tracking-tight">
+              Masuk Administrator
+            </h1>
+            <p className="text-xs text-[#71717a]">
+              Silakan masukkan username dan password admin sistem.
+            </p>
+          </div>
+
+          {loginError && (
+            <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
+                Username
+              </label>
+              <input
+                type="text"
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                required
+                className="input-bone w-full px-3.5 py-2.5 text-sm font-semibold"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className="input-bone w-full px-3.5 py-2.5 pr-10 text-sm font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#0f172a] p-1"
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loggingIn || !adminUsername.trim() || !adminPassword}
+                className="btn-orange w-full py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-orange-500/25"
+              >
+                {loggingIn ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Memverifikasi...</span>
+                  </>
+                ) : (
+                  <span>Masuk ke Panel Admin</span>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl w-full mx-auto space-y-5 sm:space-y-6">
       {/* Top Header */}
@@ -332,15 +473,27 @@ export const AdminPanel: React.FC = () => {
           </h1>
         </div>
 
-        <button
-          type="button"
-          onClick={loadData}
-          disabled={loading}
-          className="self-start sm:self-auto px-3.5 py-2 rounded-lg border border-[#e8e4dc] bg-white hover:bg-[#f4f1ea] text-xs font-bold text-[#0f172a] flex items-center gap-1.5 transition-all shadow-xs"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 text-orange-500 ${loading ? 'animate-spin' : ''}`} />
-          <span>Segarkan Data</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={loadData}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-lg border border-[#e8e4dc] bg-white hover:bg-[#f4f1ea] text-xs font-bold text-[#0f172a] flex items-center gap-1.5 transition-all shadow-xs"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-orange-500 ${loading ? 'animate-spin' : ''}`} />
+            <span>Segarkan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleAdminLogout}
+            className="px-3.5 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700 flex items-center gap-1.5 transition-all shadow-xs"
+            title="Keluar dari Panel Admin"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Keluar Admin</span>
+          </button>
+        </div>
       </div>
 
       {/* Notifications */}

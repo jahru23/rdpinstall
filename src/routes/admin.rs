@@ -18,6 +18,14 @@ use crate::routes::pages::render_spa;
 use crate::SharedState;
 
 #[derive(Debug, Deserialize)]
+pub struct AdminLoginForm {
+    #[serde(default)]
+    pub username: String,
+    #[serde(default)]
+    pub password: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CreateVoucherForm {
     #[serde(default)]
     pub count: String,
@@ -36,10 +44,94 @@ pub struct SetBalanceForm {
 }
 
 pub fn is_admin(state: &SharedState, user: &User) -> bool {
+    if user.username == state.cfg.admin_user || user.id == 1 {
+        return true;
+    }
     match (user.tg_id, state.cfg.admin_tg_ids.is_empty()) {
         (Some(id), false) => state.cfg.admin_tg_ids.contains(&id),
         (_, true) => false,
         _ => false,
+    }
+}
+
+pub async fn login_page() -> Response {
+    render_spa().await
+}
+
+pub async fn login(
+    State(state): State<SharedState>,
+    jar: axum_extra::extract::cookie::CookieJar,
+    headers: axum::http::HeaderMap,
+    Form(f): Form<AdminLoginForm>,
+) -> Response {
+    use subtle::ConstantTimeEq;
+    let user_match = f
+        .username
+        .trim()
+        .as_bytes()
+        .ct_eq(state.cfg.admin_user.as_bytes());
+    let pass_match = f
+        .password
+        .trim()
+        .as_bytes()
+        .ct_eq(state.cfg.admin_pass.as_bytes());
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if !bool::from(user_match) || !bool::from(pass_match) {
+        if wants_json {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "success": false, "message": "Username atau password salah." })),
+            )
+                .into_response();
+        } else {
+            return (StatusCode::UNAUTHORIZED, "Username atau password salah.").into_response();
+        }
+    }
+
+    let admin_tg_id = state.cfg.admin_tg_ids.first().copied().unwrap_or(1);
+    let ts = now();
+    let _ = sqlx::query(
+        "INSERT INTO users(id, tg_id, username, first_name, last_name, photo_url, banned, created_at, last_seen_at)
+         VALUES(1, ?, 'admin', 'Administrator', '', '', 0, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET tg_id = excluded.tg_id, last_seen_at = excluded.last_seen_at",
+    )
+    .bind(admin_tg_id)
+    .bind(ts)
+    .bind(ts)
+    .execute(&state.pool)
+    .await;
+
+    let ip = crate::auth::client_ip(&headers);
+    let ua = headers
+        .get(header::USER_AGENT)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    let token = match crate::auth::create_session(&state, 1, &ip, ua).await {
+        Ok(t) => t,
+        Err(e) => return e.into_response(),
+    };
+
+    tracing::info!("login admin sukses via password dari {}", ip);
+
+    if wants_json {
+        (
+            jar.add(crate::auth::session_cookie(&state, &token)),
+            Json(json!({ "success": true, "redirect": "/admin" })),
+        )
+            .into_response()
+    } else {
+        (
+            jar.add(crate::auth::session_cookie(&state, &token)),
+            Redirect::to("/admin"),
+        )
+            .into_response()
     }
 }
 
@@ -52,18 +144,35 @@ pub async fn index(
     user: MaybeUser,
     headers: axum::http::HeaderMap,
 ) -> Response {
-    let MaybeUser(Some(user)) = user else {
-        return Redirect::to("/masuk").into_response();
-    };
-    if !is_admin(&state, &user) {
-        return (StatusCode::FORBIDDEN, "Akses ditolak: Bukan admin.").into_response();
-    }
-
     let wants_json = headers
         .get(header::ACCEPT)
         .and_then(|v| v.to_str().ok())
         .map(|s| s.contains("application/json"))
         .unwrap_or(false);
+
+    let MaybeUser(Some(user)) = user else {
+        if wants_json {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({ "is_admin": false, "error": "unauthorized" })),
+            )
+                .into_response();
+        } else {
+            return render_spa().await;
+        }
+    };
+
+    if !is_admin(&state, &user) {
+        if wants_json {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "is_admin": false, "error": "forbidden" })),
+            )
+                .into_response();
+        } else {
+            return render_spa().await;
+        }
+    }
 
     if wants_json {
         overview(State(state), CurrentUser(user)).await

@@ -23,6 +23,8 @@ pub struct Config {
     pub paygate_provider: String,
     /// id Telegram yang boleh mencetak voucer.
     pub admin_tg_ids: Vec<i64>,
+    pub admin_user: String,
+    pub admin_pass: String,
     pub cryptogate_url: String,
     pub cryptogate_key: String,
 }
@@ -62,6 +64,8 @@ impl Config {
                 .split(',')
                 .filter_map(|x| x.trim().parse::<i64>().ok())
                 .collect(),
+            admin_user: var("RDPINSTALL_ADMIN_USER", "admin"),
+            admin_pass: var("RDPINSTALL_ADMIN_PASS", "admin12345"),
             cryptogate_url: var("CRYPTOGATE_URL", "http://127.0.0.1:8899"),
             cryptogate_key: var("CRYPTOGATE_API_KEY", ""),
         })

@@ -121,7 +121,7 @@ export const App: React.FC = () => {
                 });
             }}
           />
-        ) : currentTab === 'admin' && user?.is_admin ? (
+        ) : currentTab === 'admin' ? (
           <AdminPanel />
         ) : (
           <GuestWizard
