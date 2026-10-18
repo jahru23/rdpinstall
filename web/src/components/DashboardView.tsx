@@ -29,24 +29,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl w-full mx-auto space-y-5 sm:space-y-6">
       {/* Saldo & Quick Action Card */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="card-bone p-6 flex flex-col justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+        <div className="card-bone p-4 sm:p-6 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-[#71717a] text-xs font-bold uppercase tracking-wider mb-2">
+            <div className="flex items-center justify-between text-[#71717a] text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
               <span>Saldo Akun</span>
               <Wallet className="w-4 h-4 text-orange-500" />
             </div>
-            <div className="text-3xl font-extrabold text-[#0f172a] tracking-tight">
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
               Rp{user.balance.toLocaleString('id-ID')}
             </div>
             <p className="text-xs text-[#71717a] mt-1">Dapat digunakan untuk instalasi berakun.</p>
           </div>
-          <div className="mt-5">
+          <div className="mt-4 sm:mt-5">
             <button
               onClick={onTopupClick}
-              className="px-4 py-2 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#0f172a] hover:bg-[#f4f1ea] flex items-center gap-1.5"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#0f172a] hover:bg-[#f4f1ea] flex items-center justify-center gap-1.5"
             >
               <Plus className="w-4 h-4 text-orange-500" />
               <span>Isi Saldo (QRIS)</span>
@@ -54,23 +54,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        <div className="card-bone p-6 flex flex-col justify-between bg-gradient-to-br from-white to-orange-50/40">
+        <div className="card-bone p-4 sm:p-6 flex flex-col justify-between bg-gradient-to-br from-white to-orange-50/40">
           <div>
-            <div className="flex items-center justify-between text-[#71717a] text-xs font-bold uppercase tracking-wider mb-2">
+            <div className="flex items-center justify-between text-[#71717a] text-xs font-bold uppercase tracking-wider mb-1.5 sm:mb-2">
               <span>Instalasi Berakun</span>
               <Server className="w-4 h-4 text-orange-500" />
             </div>
-            <div className="text-3xl font-extrabold text-[#0f172a] tracking-tight">
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
               Rp5.000<span className="text-xs font-normal text-[#71717a] ml-1">/ instalasi</span>
             </div>
             <p className="text-xs text-[#71717a] mt-1">
               Pasang Windows langsung pada VPS Linux Anda tanpa kode voucer.
             </p>
           </div>
-          <div className="mt-5">
+          <div className="mt-4 sm:mt-5">
             <button
               onClick={onNewInstallClick}
-              className="btn-orange px-5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5"
+              className="btn-orange w-full sm:w-auto px-5 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
             >
               <span>Pasang Sekarang</span>
               <ArrowRight className="w-4 h-4" />
@@ -80,7 +80,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* Riwayat Pekerjaan */}
-      <div className="card-bone p-6 sm:p-7">
+      <div className="card-bone p-4 sm:p-7">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-[#0f172a] flex items-center gap-2">
             <Clock className="w-4 h-4 text-orange-500" />

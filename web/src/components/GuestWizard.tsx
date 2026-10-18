@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { EDITIONS, WindowsEdition } from '../types';
+import { EDITIONS } from '../types';
 import {
   Ticket,
   Server,
-  Lock,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -142,36 +141,36 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl w-full mx-auto">
       {/* Intro Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-700 text-xs font-semibold mb-3 shadow-xs">
-          <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-          <span>Universal Linux to Windows RDP Installer</span>
+      <div className="text-center mb-6 sm:mb-8 px-1">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:py-1.5 rounded-full bg-orange-50 border border-orange-200/80 text-orange-700 text-[11px] sm:text-xs font-semibold mb-2.5 sm:mb-3 shadow-xs max-w-full">
+          <Sparkles className="w-3.5 h-3.5 text-orange-500 flex-shrink-0" />
+          <span className="truncate">Universal Linux to Windows RDP</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
+        <h1 className="text-xl sm:text-3xl font-extrabold text-[#0f172a] tracking-tight">
           VPS Linux Anda, dijadikan Windows.
         </h1>
-        <p className="mt-2 text-sm sm:text-base text-[#52525b] max-w-lg mx-auto">
+        <p className="mt-2 text-xs sm:text-base text-[#52525b] max-w-lg mx-auto">
           Cukup masukkan kode voucer dan data akses SSH VPS Anda. Sistem akan memeriksa mesin dan menginstal Windows otomatis.
         </p>
       </div>
 
       {/* Stepper Header */}
-      <div className="card-bone p-4 sm:p-5 mb-6">
-        <div className="grid grid-cols-4 gap-2 text-center">
+      <div className="card-bone p-2.5 sm:p-5 mb-5 sm:mb-6">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2 text-center">
           {[
-            { s: 1, title: 'Voucer', icon: Ticket },
-            { s: 2, title: 'Akses VPS', icon: Server },
-            { s: 3, title: 'OS Windows', icon: Layers },
-            { s: 4, title: 'Konfirmasi', icon: CheckCircle2 },
-          ].map(({ s, title, icon: Icon }) => (
+            { s: 1, title: 'Voucer', short: 'Voucer' },
+            { s: 2, title: 'Akses VPS', short: 'VPS' },
+            { s: 3, title: 'OS Windows', short: 'Windows' },
+            { s: 4, title: 'Konfirmasi', short: 'Review' },
+          ].map(({ s, title, short }) => (
             <button
               key={s}
               type="button"
               disabled={s > step}
               onClick={() => s < step && setStep(s)}
-              className={`flex flex-col items-center gap-1.5 p-2 rounded-lg transition-all ${
+              className={`flex flex-col items-center gap-1 sm:gap-1.5 p-1.5 sm:p-2 rounded-lg transition-all min-w-0 ${
                 step === s
                   ? 'bg-[#0f172a] text-white shadow-sm'
                   : s < step
@@ -180,7 +179,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               }`}
             >
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold flex-shrink-0 ${
                   step === s
                     ? 'bg-orange-500 text-white'
                     : s < step
@@ -188,9 +187,12 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                     : 'bg-[#f4f1ea] text-[#71717a]'
                 }`}
               >
-                {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
+                {s < step ? <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : s}
               </div>
-              <span className="text-xs font-medium truncate max-w-full">{title}</span>
+              <span className="text-[10px] sm:text-xs font-medium truncate max-w-full">
+                <span className="sm:hidden">{short}</span>
+                <span className="hidden sm:inline">{title}</span>
+              </span>
             </button>
           ))}
         </div>
@@ -198,20 +200,20 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
 
       {/* Error Alert */}
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-3 shadow-xs">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500 mt-0.5" />
-          <div className="flex-1">{error}</div>
+        <div className="mb-5 sm:mb-6 p-3 sm:p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm flex items-start gap-2.5 sm:gap-3 shadow-xs">
+          <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-red-500 mt-0.5" />
+          <div className="flex-1 break-words">{error}</div>
         </div>
       )}
 
       {/* Card Form */}
-      <div className="card-bone p-6 sm:p-8">
+      <div className="card-bone p-4 sm:p-8">
         {/* STEP 1: VOUCHER */}
         {step === 1 && (
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-                <Ticket className="w-5 h-5 text-orange-500" />
+              <h2 className="text-base sm:text-lg font-bold text-[#0f172a] flex items-center gap-2">
+                <Ticket className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
                 <span>Masukkan Kode Voucer</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
@@ -232,20 +234,20 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   placeholder="RDP-XXXX-XXXX"
                   value={voucher}
                   onChange={(e) => setVoucher(e.target.value.toUpperCase())}
-                  className="input-bone w-full px-4 py-3 text-base sm:text-lg font-mono tracking-wider uppercase font-bold placeholder:font-normal placeholder:tracking-normal"
+                  className="input-bone w-full px-3.5 sm:px-4 py-2.5 sm:py-3 text-base sm:text-lg font-mono tracking-wider uppercase font-bold placeholder:font-normal placeholder:tracking-normal"
                   autoFocus
                 />
               </div>
-              <p className="text-xs text-[#71717a] mt-2">
+              <p className="text-[11px] sm:text-xs text-[#71717a] mt-1.5">
                 Dapatkan kode voucer dari admin atau bot Telegram jaystore.
               </p>
             </div>
 
-            <div className="pt-4 flex justify-end">
+            <div className="pt-3 sm:pt-4 flex justify-end">
               <button
                 type="button"
                 onClick={handleNext}
-                className="btn-orange px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2"
+                className="btn-orange w-full sm:w-auto px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
                 <span>Lanjutkan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -256,10 +258,10 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
 
         {/* STEP 2: VPS ACCESS */}
         {step === 2 && (
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-                <Server className="w-5 h-5 text-orange-500" />
+              <h2 className="text-base sm:text-lg font-bold text-[#0f172a] flex items-center gap-2">
+                <Server className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
                 <span>Kredensial SSH VPS Linux</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
@@ -268,7 +270,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
             </div>
 
             <div>
-              <label htmlFor="host" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+              <label htmlFor="host" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                 Alamat IP Publik VPS
               </label>
               <input
@@ -279,16 +281,16 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 placeholder="103.150.60.10"
                 value={host}
                 onChange={(e) => setHost(e.target.value)}
-                className="input-bone w-full px-4 py-2.5 text-sm font-mono"
+                className="input-bone w-full px-3.5 py-2.5 text-sm font-mono"
               />
-              <p className="text-xs text-[#71717a] mt-1.5">
-                Pastikan VPS berarsitektur KVM dan menggunakan OS Linux (Debian, Ubuntu, Alma, Rocky, CentOS).
+              <p className="text-[11px] sm:text-xs text-[#71717a] mt-1">
+                Pastikan VPS berarsitektur KVM dan menggunakan OS Linux standar.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label htmlFor="ssh_user" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="ssh_user" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   User SSH
                 </label>
                 <input
@@ -297,12 +299,12 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   type="text"
                   value={sshUser}
                   onChange={(e) => setSshUser(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 text-sm font-mono"
+                  className="input-bone w-full px-3.5 py-2.5 text-sm font-mono"
                 />
               </div>
 
               <div>
-                <label htmlFor="ssh_port" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="ssh_port" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   Port SSH
                 </label>
                 <input
@@ -311,13 +313,13 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   type="number"
                   value={sshPort}
                   onChange={(e) => setSshPort(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 text-sm font-mono"
+                  className="input-bone w-full px-3.5 py-2.5 text-sm font-mono"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="ssh_pass" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+              <label htmlFor="ssh_pass" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                 Password SSH Root
               </label>
               <div className="relative">
@@ -328,26 +330,26 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   required
                   value={sshPass}
                   onChange={(e) => setSshPass(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 pr-11 text-sm font-mono"
+                  className="input-bone w-full px-3.5 py-2.5 pr-11 text-sm font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowSshPass(!showSshPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#0f172a]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#0f172a] p-1"
                 >
                   {showSshPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-xs text-[#71717a] mt-1.5">
+              <p className="text-[11px] sm:text-xs text-[#71717a] mt-1">
                 Password dienkripsi AES-256 dan otomatis dihapus saat proses selesai.
               </p>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-3 sm:pt-4 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-4 py-2 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center gap-1.5"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -355,7 +357,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               <button
                 type="button"
                 onClick={handleNext}
-                className="btn-orange px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2"
+                className="btn-orange w-full sm:w-auto px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
                 <span>Lanjutkan</span>
                 <ArrowRight className="w-4 h-4" />
@@ -366,10 +368,10 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
 
         {/* STEP 3: WINDOWS CONFIG */}
         {step === 3 && (
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             <div>
-              <h2 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-                <Layers className="w-5 h-5 text-orange-500" />
+              <h2 className="text-base sm:text-lg font-bold text-[#0f172a] flex items-center gap-2">
+                <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
                 <span>Pilih Edisi & Kredensial Windows</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
@@ -381,21 +383,21 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               <label htmlFor="edition" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
                 Pilih Edisi Windows
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                 {EDITIONS.map((ed) => (
                   <button
                     key={ed.key}
                     type="button"
                     onClick={() => setEdition(ed.key)}
-                    className={`p-3 rounded-xl border text-left transition-all ${
+                    className={`p-3 rounded-xl border text-left transition-all min-w-0 ${
                       edition === ed.key
                         ? 'border-orange-500 bg-orange-50/70 shadow-xs'
                         : 'border-[#e8e4dc] bg-white hover:border-[#18181b]'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs sm:text-sm text-[#0f172a]">{ed.label}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#f4f1ea] text-[#71717a]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-xs sm:text-sm text-[#0f172a] truncate">{ed.label}</span>
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#f4f1ea] text-[#71717a] flex-shrink-0">
                         RAM {ed.min_ram_gb}GB+
                       </span>
                     </div>
@@ -405,9 +407,9 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label htmlFor="lang" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="lang" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   Bahasa Tampilan
                 </label>
                 <select
@@ -415,7 +417,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   name="lang"
                   value={lang}
                   onChange={(e) => setLang(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 text-sm"
+                  className="input-bone w-full px-3.5 py-2.5 text-sm"
                 >
                   <option value="en-us">English (US)</option>
                   <option value="zh-cn">Chinese Simplified (zh-cn)</option>
@@ -423,7 +425,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               </div>
 
               <div>
-                <label htmlFor="rdp_port" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="rdp_port" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   Port RDP
                 </label>
                 <input
@@ -432,14 +434,14 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   type="number"
                   value={rdpPort}
                   onChange={(e) => setRdpPort(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 text-sm font-mono"
+                  className="input-bone w-full px-3.5 py-2.5 text-sm font-mono"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label htmlFor="rdp_user" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="rdp_user" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   User Administrator RDP
                 </label>
                 <input
@@ -448,12 +450,12 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                   type="text"
                   value={rdpUser}
                   onChange={(e) => setRdpUser(e.target.value)}
-                  className="input-bone w-full px-4 py-2.5 text-sm font-mono"
+                  className="input-bone w-full px-3.5 py-2.5 text-sm font-mono"
                 />
               </div>
 
               <div>
-                <label htmlFor="rdp_pass" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-2">
+                <label htmlFor="rdp_pass" className="block text-xs font-bold uppercase tracking-wider text-[#71717a] mb-1.5">
                   Password RDP Baru
                 </label>
                 <div className="relative">
@@ -462,15 +464,15 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                     name="rdp_pass"
                     type={showRdpPass ? 'text' : 'password'}
                     required
-                    placeholder="Min 8 karakter, huruf & angka"
+                    placeholder="Min 8 karakter"
                     value={rdpPass}
                     onChange={(e) => setRdpPass(e.target.value)}
-                    className="input-bone w-full px-4 py-2.5 pr-11 text-sm font-mono"
+                    className="input-bone w-full px-3.5 py-2.5 pr-11 text-sm font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRdpPass(!showRdpPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#0f172a]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#0f172a] p-1"
                   >
                     {showRdpPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -478,11 +480,11 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               </div>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-3 sm:pt-4 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-4 py-2 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center gap-1.5"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center justify-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -490,7 +492,7 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               <button
                 type="button"
                 onClick={handleNext}
-                className="btn-orange px-6 py-2.5 rounded-lg font-bold text-sm flex items-center gap-2"
+                className="btn-orange w-full sm:w-auto px-6 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2"
               >
                 <span>Review & Konfirmasi</span>
                 <ArrowRight className="w-4 h-4" />
@@ -501,10 +503,10 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
 
         {/* STEP 4: REVIEW & DEPLOY */}
         {step === 4 && (
-          <div className="space-y-6">
+          <div className="space-y-5 sm:space-y-6">
             <div>
-              <h2 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-orange-500" />
+              <h2 className="text-base sm:text-lg font-bold text-[#0f172a] flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 flex-shrink-0" />
                 <span>Review Data Sebelum Pemasangan</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
@@ -513,35 +515,35 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
             </div>
 
             <div className="rounded-xl border border-[#e8e4dc] bg-[#fbfaf7] divide-y divide-[#e8e4dc] overflow-hidden">
-              <div className="p-3.5 flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-[#71717a] font-medium">Kode Voucer</span>
-                <span className="font-mono font-bold text-[#0f172a] bg-orange-100/60 px-2 py-0.5 rounded text-orange-800">
+              <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-xs sm:text-sm">
+                <span className="text-[#71717a] font-medium flex-shrink-0">Kode Voucer</span>
+                <span className="font-mono font-bold text-[#0f172a] bg-orange-100/60 px-2 py-0.5 rounded text-orange-800 break-all sm:text-right self-start sm:self-auto">
                   {voucher}
                 </span>
               </div>
-              <div className="p-3.5 flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-[#71717a] font-medium">Target VPS</span>
-                <span className="font-mono font-bold text-[#0f172a]">
+              <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-xs sm:text-sm">
+                <span className="text-[#71717a] font-medium flex-shrink-0">Target VPS</span>
+                <span className="font-mono font-bold text-[#0f172a] break-all sm:text-right">
                   {sshUser}@{host}:{sshPort}
                 </span>
               </div>
-              <div className="p-3.5 flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-[#71717a] font-medium">Edisi Windows</span>
-                <span className="font-bold text-[#0f172a]">
+              <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-xs sm:text-sm">
+                <span className="text-[#71717a] font-medium flex-shrink-0">Edisi Windows</span>
+                <span className="font-bold text-[#0f172a] break-all sm:text-right">
                   {selectedEditionObj.label} ({lang})
                 </span>
               </div>
-              <div className="p-3.5 flex items-center justify-between text-xs sm:text-sm">
-                <span className="text-[#71717a] font-medium">Kredensial RDP Nanti</span>
-                <span className="font-mono text-xs text-[#0f172a]">
+              <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 text-xs sm:text-sm">
+                <span className="text-[#71717a] font-medium flex-shrink-0">Kredensial RDP Nanti</span>
+                <span className="font-mono text-xs text-[#0f172a] break-all sm:text-right">
                   User: <b>{rdpUser}</b> · Port: <b>{rdpPort}</b>
                 </span>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed space-y-1.5">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs leading-relaxed space-y-1.5">
               <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                <HelpCircle className="w-4 h-4 text-amber-600" />
+                <HelpCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <span>Peringatan Penting:</span>
               </div>
               <p>• Seluruh data pada disk utama VPS akan diformat bersih.</p>
@@ -549,12 +551,12 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
               <p>• Estimasi durasi 20 hingga 50 menit tergantung kecepatan koneksi server ke upstream ISO.</p>
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
               <button
                 type="button"
                 disabled={loading}
                 onClick={handleBack}
-                className="px-4 py-2.5 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center gap-1.5 disabled:opacity-50"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-lg border border-[#e8e4dc] text-xs font-bold text-[#52525b] hover:bg-[#f4f1ea] flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Kembali</span>
@@ -563,17 +565,18 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 type="button"
                 disabled={loading}
                 onClick={handleSubmit}
-                className="btn-orange px-8 py-3 rounded-lg font-extrabold text-sm flex items-center gap-2 shadow-lg shadow-orange-500/30"
+                className="btn-orange w-full sm:w-auto px-5 sm:px-8 py-3 rounded-lg font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-500/30"
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
                     <span>Menghubungi VPS...</span>
                   </>
                 ) : (
                   <>
-                    <Terminal className="w-4 h-4" />
-                    <span>Mulai Pemasangan Windows Sekarang</span>
+                    <Terminal className="w-4 h-4 flex-shrink-0" />
+                    <span className="sm:hidden">Mulai Pasang Windows</span>
+                    <span className="hidden sm:inline">Mulai Pemasangan Windows Sekarang</span>
                   </>
                 )}
               </button>
@@ -583,9 +586,9 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
       </div>
 
       {/* Info / FAQ Footer */}
-      <div className="mt-8 card-bone p-5 text-xs text-[#71717a] leading-relaxed">
-        <div className="font-bold text-[#0f172a] mb-2 flex items-center gap-1.5">
-          <Shield className="w-4 h-4 text-orange-500" />
+      <div className="mt-6 sm:mt-8 card-bone p-4 sm:p-5 text-xs text-[#71717a] leading-relaxed">
+        <div className="font-bold text-[#0f172a] mb-1.5 sm:mb-2 flex items-center gap-1.5">
+          <Shield className="w-4 h-4 text-orange-500 flex-shrink-0" />
           <span>Keamanan & Jaminan Operasional</span>
         </div>
         <p>

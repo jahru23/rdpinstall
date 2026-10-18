@@ -75,17 +75,17 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
   }, [invoice, invoiceStatus, onSuccess]);
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
-      <div className="card-bone p-6 sm:p-7">
-        <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#e8e4dc]">
-          <div>
-            <h1 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-orange-500" />
-              <span>Isi Saldo Otomatis via QRIS</span>
+    <div className="max-w-xl w-full mx-auto space-y-5 sm:space-y-6">
+      <div className="card-bone p-4 sm:p-7">
+        <div className="flex items-center justify-between gap-3 mb-4 pb-4 border-b border-[#e8e4dc]">
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg font-bold text-[#0f172a] flex items-center gap-2 truncate">
+              <QrCode className="w-5 h-5 text-orange-500 flex-shrink-0" />
+              <span>Isi Saldo via QRIS</span>
             </h1>
-            <p className="text-xs text-[#71717a] mt-0.5">GoPay Merchant (GoBiz) · Real-time 24 Jam</p>
+            <p className="text-xs text-[#71717a] mt-0.5 truncate">GoPay Merchant (GoBiz) · Real-time 24 Jam</p>
           </div>
-          <div className="text-right">
+          <div className="text-right flex-shrink-0">
             <span className="text-[11px] text-[#71717a] block">Saldo Anda</span>
             <span className="text-sm font-bold text-[#0f172a]">Rp{user.balance.toLocaleString('id-ID')}</span>
           </div>
@@ -100,7 +100,7 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
 
         {invoice ? (
           <div className="text-center space-y-4 py-2">
-            <div className="p-4 rounded-xl bg-[#f4f1ea] border border-[#e2ded4] inline-block">
+            <div className="p-3 sm:p-4 rounded-xl bg-[#f4f1ea] border border-[#e2ded4] inline-block max-w-full">
               {invoiceStatus === 'paid' ? (
                 <div className="py-6 px-4 space-y-2 text-center text-emerald-800">
                   <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
@@ -113,7 +113,7 @@ export const TopupView: React.FC<TopupViewProps> = ({ user, onSuccess }) => {
                   <img
                     src={`https://pg-v1.jaystore.top/qr/PG-${invoice.reference}?format=png`}
                     alt="QRIS"
-                    className="w-56 h-56 mx-auto rounded-lg bg-white p-2 border border-[#e2ded4] shadow-xs"
+                    className="w-48 sm:w-56 h-48 sm:h-56 mx-auto rounded-lg bg-white p-2 border border-[#e2ded4] shadow-xs max-w-full object-contain"
                     onError={(e: any) => {
                       // Fallback if needed
                       e.target.src = `/topup/${invoice.reference}`;

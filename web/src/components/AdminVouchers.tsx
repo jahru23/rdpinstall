@@ -132,8 +132,8 @@ export const AdminVouchers: React.FC = () => {
         ) : (
           <div className="divide-y divide-[#e8e4dc] max-h-96 overflow-y-auto pr-1">
             {vouchers.map((v) => (
-              <div key={v.code} className="py-3 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 font-mono">
+              <div key={v.code} className="py-2.5 sm:py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 text-xs">
+                <div className="flex items-center gap-2 font-mono flex-wrap">
                   <span className="font-bold text-[#0f172a]">{v.code}</span>
                   <button
                     onClick={() => copyCode(v.code)}
@@ -143,13 +143,13 @@ export const AdminVouchers: React.FC = () => {
                     {copiedCode === v.code ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                   {v.note && (
-                    <span className="text-[11px] font-sans text-[#71717a] bg-[#f4f1ea] px-1.5 py-0.5 rounded">
+                    <span className="text-[11px] font-sans text-[#71717a] bg-[#f4f1ea] px-1.5 py-0.5 rounded break-all">
                       {v.note}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-end sm:self-auto">
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                       v.revoked
