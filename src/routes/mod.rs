@@ -37,8 +37,8 @@ pub fn router(state: SharedState) -> Router {
         .route("/admin/vouchers/{code}/revoke", post(admin::revoke))
         // teknis
         .route("/healthz", get(|| async { "ok" }))
-        .route("/static/style.css", get(assets::css))
         .route("/favicon.svg", get(assets::favicon))
-        .fallback(pages::not_found)
+        // static & SPA assets fallback
+        .fallback(assets::static_handler)
         .with_state(state)
 }

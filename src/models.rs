@@ -1,7 +1,7 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct User {
     pub id: i64,
     pub tg_id: Option<i64>,
@@ -42,7 +42,7 @@ impl User {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct Job {
     pub id: i64,
     pub user_id: i64,
@@ -73,7 +73,7 @@ pub struct Job {
 }
 
 /// Tahap perjalanan instalasi, dipakai untuk rel fase di UI.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum Stage {
     Antre,
     Diperiksa,
@@ -94,9 +94,6 @@ impl Job {
             "failed" | "cancelled" => return Stage::Gagal,
             _ => {}
         }
-        // Urutan pemeriksaan penting: sebutan yang lebih khusus diperiksa lebih
-        // dulu, karena teks fase bisa memuat dua kata kunci sekaligus
-        // ("VPS mengunduh image Windows" memuat "windows" juga).
         let p = self.phase.to_lowercase();
         if p.contains("rdp") {
             Stage::Windows
@@ -114,7 +111,7 @@ impl Job {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct Voucher {
     pub code: String,
     pub created_at: i64,
@@ -167,11 +164,7 @@ impl Job {
 }
 
 /// Satu invoice topup.
-///
-/// Catatan penamaan: kolom DB `qr_string` menyimpan **URL PNG QRIS** dari
-/// gateway (bukan payload QR mentah) — dokumen PayGate melarang menggambar QR
-/// sendiri dari string, jadi kami memakai gambar yang diterbitkan gateway.
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct Payment {
     pub id: i64,
     pub user_id: i64,
@@ -205,14 +198,14 @@ impl Payment {
     }
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct JobEvent {
     pub ts: i64,
     pub phase: String,
     pub message: String,
 }
 
-#[derive(Debug, Clone, FromRow)]
+#[derive(Debug, Clone, FromRow, Serialize)]
 pub struct CloudAccount {
     pub id: i64,
     pub user_id: i64,
@@ -253,7 +246,6 @@ pub struct TelegramAuth {
 }
 
 impl TelegramAuth {
-    /// Field yang ikut ditandatangani (semua kecuali `hash`).
     pub fn signed_fields(&self) -> Vec<(String, String)> {
         vec![
             ("id".into(), self.id.to_string()),

@@ -1,0 +1,111 @@
+import React from 'react';
+import { Server, Wallet, Shield, LogIn, LogOut, Ticket, LayoutDashboard } from 'lucide-react';
+import { UserProfile } from '../types';
+
+interface NavbarProps {
+  currentTab: string;
+  setTab: (tab: string) => void;
+  user: UserProfile | null;
+  onLoginClick: () => void;
+  onLogout: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({
+  currentTab,
+  setTab,
+  user,
+  onLoginClick,
+  onLogout,
+}) => {
+  return (
+    <header className="sticky top-0 z-40 bg-[#fbfaf7]/90 backdrop-blur-md border-b border-[#e8e4dc]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Brand */}
+        <button
+          onClick={() => setTab('guest')}
+          className="flex items-center gap-2.5 font-extrabold text-lg tracking-tight text-[#0f172a] hover:opacity-90 transition-opacity"
+        >
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white shadow-md shadow-orange-500/25">
+            <Server className="w-4 h-4 stroke-[2.5]" />
+          </div>
+          <span>
+            rdp<span className="text-orange-600">install</span>
+          </span>
+        </button>
+
+        {/* Navigation Tabs */}
+        <nav className="flex items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={() => setTab('guest')}
+            className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all ${
+              currentTab === 'guest'
+                ? 'bg-[#0f172a] text-white shadow-sm'
+                : 'text-[#52525b] hover:bg-[#f4f1ea] hover:text-[#0f172a]'
+            }`}
+          >
+            <Ticket className="w-3.5 h-3.5 text-orange-500" />
+            <span>Pasang (Voucer)</span>
+          </button>
+
+          {user ? (
+            <>
+              <button
+                onClick={() => setTab('dashboard')}
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all ${
+                  currentTab === 'dashboard'
+                    ? 'bg-[#0f172a] text-white shadow-sm'
+                    : 'text-[#52525b] hover:bg-[#f4f1ea] hover:text-[#0f172a]'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => setTab('topup')}
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all ${
+                  currentTab === 'topup'
+                    ? 'bg-[#0f172a] text-white shadow-sm'
+                    : 'text-[#52525b] hover:bg-[#f4f1ea] hover:text-[#0f172a]'
+                }`}
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Saldo (Rp{user.balance.toLocaleString('id-ID')})</span>
+              </button>
+
+              {user.is_admin && (
+                <button
+                  onClick={() => setTab('admin')}
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all ${
+                    currentTab === 'admin'
+                      ? 'bg-[#0f172a] text-white shadow-sm'
+                      : 'text-[#52525b] hover:bg-[#f4f1ea] hover:text-[#0f172a]'
+                  }`}
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </button>
+              )}
+
+              <button
+                onClick={onLogout}
+                className="p-2 rounded-lg text-[#71717a] hover:bg-[#f4f1ea] hover:text-red-600 transition-colors"
+                title="Keluar"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onLoginClick}
+              className="ml-2 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold border border-[#e8e4dc] bg-white text-[#0f172a] hover:border-[#18181b] hover:shadow-sm flex items-center gap-1.5 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5 text-[#52525b]" />
+              <span>Masuk Akun</span>
+            </button>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+};

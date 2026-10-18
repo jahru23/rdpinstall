@@ -1,84 +1,52 @@
 # DESIGN.md
 
-Arah desain untuk rdpinstall. Ditulis dari jawaban pemilik produk (2026-10-18),
-bukan dikarang agen. Aturan antislop dipakai sebagai filter di atas arah ini.
+Arah desain untuk rdpinstall v2 (React 19 + Tailwind CSS).
+Disusun langsung dari arahan pemilik produk (2026-10-18):
+- Tema terang (Light theme)
+- Dominan White Bone (latar & kartu bernuansa tulang putih/hangat)
+- Orange button with shadow (tombol utama oranye menyala dengan elevasi bayangan)
+- Little bit black (aksen hitam pekat untuk teks judul, border kontras, dan badge)
+- Multi-Step Wizard untuk instalasi tamu
 
-## Identitas
+## Dial Antislop
 
-Alat kerja, bukan halaman pemasaran. Yang datang ke sini sedang menyiapkan mesin
-dan butuh memastikan angkanya benar, jadi desainnya tenang, padat, dan tidak
-menghibur diri.
+`Dial: ENERGY 2 / RHYTHM 2 / MOTION 2`
 
-Ciri yang dipegang: **monokrom + satu aksen merah**. Tidak meniru layout produk
-lain (Linear, Vercel, Stripe). Nuansanya boleh rapi dan bersih seperti alat
-developer pada umumnya, tapi susunannya milik produk ini.
+- **ENERGY 2**: Dinamis dan percaya diri. Tombol oranye bertenaga dengan bayangan lembut, kontras teks hitam tajam, border bertekstur.
+- **RHYTHM 2**: Multi-Step Wizard dengan transisi antar tahap (1. Voucer -> 2. Kredensial VPS -> 3. Pilihan Windows -> 4. Review & Deploy), kartu ringkasan bervariasi.
+- **MOTION 2**: Transisi langkah halus, progress stepper interaktif, feedback animasi tombol copy, pulse ring pada node rel fase yang aktif.
 
-## Dial
+## Palet Warna
 
-`Dial: ENERGY 1 / RHYTHM 2 / MOTION 1`
-
-- **ENERGY 1**: tenang. Tidak ada yang berteriak, tidak ada gradient, tidak ada glow.
-- **RHYTHM 2**: bagian-bagiannya berbeda bentuk sesuai isinya. Halaman tamu
-  (form) beda dari dashboard (kartu ringkasan) dan beda dari halaman job
-  (rel fase). Bukan satu pola yang diulang.
-- **MOTION 1**: hanya keadaan hover, focus, dan pembaruan progres yang memang
-  bergerak karena datanya berubah. Tidak ada animasi masuk.
-
-## Warna
-
-| Peran | Nilai | Alasan |
+| Peran | Nilai | Karakteristik |
 |---|---|---|
-| Latar | `#f7f7f5` (kertas hangat, bukan putih murni) | putih murni menyilaukan untuk layar lama; hangat sedikit lebih enak dibaca |
-| Permukaan (kartu) | `#ffffff` | kartu harus terbaca sebagai lapisan di atas latar |
-| Garis | `#e2e2de` | pemisah, bukan hiasan |
-| Teks utama | `#17171a` | kontras 16:1, jauh di atas ambang WCAG AA |
-| Teks sekunder | `#5c5c63` | kontras 7:1, tetap aman untuk teks kecil |
-| Teks redup | `#8a8a92` | hanya untuk label huruf kecil, kontras 4,6:1 |
-| Aksen | `#c8281f` | satu-satunya warna berani. Dipakai untuk aksi utama, status hidup, dan penanda fase aktif |
-| Aksen redup | `#8f1c15` | untuk keadaan hover/tekan pada aksen |
-| Baik | `#1c7a4a` | status selesai |
-| Gagal | `#a8261d` | status gagal, sengaja dekat dengan aksen supaya keluarga warna tetap kecil |
-
-Palet inti: monokrom + satu aksen. Hijau/merah status adalah keadaan, bukan
-warna merek. Tidak ada biru.
+| Latar Halaman (Bone) | `#fbfaf7` | Putih gading / tulang hangat, bersih, tidak menyilaukan mata |
+| Kartu / Permukaan | `#ffffff` | Putih bersih berpadu halus di atas background bone |
+| Latar Sub-panel / Input | `#f4f1ea` | Sedikit lebih gelap dari latar utama untuk kontras form |
+| Border Halus | `#e8e4dc` | Garis 1px pembatas lembut |
+| Border Kuat / Black Accent | `#18181b` | Aksen hitam pekat untuk kontras dan elemen penting |
+| Teks Utama | `#0f172a` | Hitam slate pekat (kontras 15:1 pada latar bone) |
+| Teks Sekunder / Muted | `#52525b` | Abu-abu netral untuk label dan penjelasan |
+| Tombol Utama (Orange) | `linear-gradient(135deg, #f97316 0%, #ea580c 100%)` | Oranye segar dan bertenaga |
+| Bayangan Tombol | `0 4px 14px rgba(234, 88, 12, 0.32)` | Shadow oranye hangat khas produk modern |
+| Tombol Hover | `linear-gradient(135deg, #fb923c 0%, #f97316 100%)` | Sedikit lebih terang saat disentuh kursor |
+| Status Sukses / Siap | `#15803d` (hijau emerald lembut) | Latar `#ecfdf5`, border `#a7f3d0` |
+| Status Gagal / Peringatan | `#dc2626` (merah tegas) | Latar `#fef2f2`, border `#fecaca` |
 
 ## Tipografi
 
-- Teks: tumpukan sans sistem (`-apple-system, Segoe UI, Roboto, Helvetica`).
-  Alasan: nol unduhan, tampil asli di tiap perangkat, dan tidak memakai font
-  bawaan agen (Inter/Geist) yang jadi penanda hasil AI.
-- Data mesin (IP, port, username, sidik jari, baris log fase): monospace sistem.
-  Alasan: angka-angka ini yang paling sering salah dibaca dan disalin; lebar
-  tetap membuatnya bisa dicocokkan kolom demi kolom. Monospace **tidak** dipakai
-  untuk judul.
-- Judul halaman 22-26 px, bobot 600. Tidak ada huruf besar berjarak lebar.
+- Font Display & Body: Inter / System Sans-serif modern (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto`).
+- Angka, Alamat Mesin, Token & Port: Monospace (`ui-monospace, "SF Mono", Menlo, Consolas`).
 
-## Bentuk dan jarak
+## Struktur Multi-Step Wizard (Halaman Utama)
 
-- Radius 8 px untuk kartu dan tombol, 5 px untuk label kecil. Tidak ada bentuk pil.
-- Garis 1 px sebagai pemisah; bayangan hanya satu tingkat untuk kartu yang
-  memang mengambang di atas latar, tidak untuk setiap elemen.
-- Jarak antar bagian 20-28 px; di dalam kartu 12-16 px.
+1. **Langkah 1 (Voucer)**: Input kode voucer sekali pakai (`RDP-XXXX-XXXX`), verifikasi cepat, dan penjelasan singkat.
+2. **Langkah 2 (Mesin VPS)**: Input IP publik / host, port SSH (default 22), user (default root), dan password SSH.
+3. **Langkah 3 (Konfigurasi Windows)**: Pilihan edisi Windows (10/11/Server) dengan catatan kebutuhan RAM, pilihan bahasa, user RDP, dan password Windows yang memenuhi syarat.
+4. **Langkah 4 (Review & Pasang)**: Ringkasan konfigurasi sebelum deploy, tombol eksekusi oranye besar dengan konfirmasi.
 
-## Ciri yang diulang (motif identitas)
+## Rel Fase Instalasi
 
-**Rel fase.** Perjalanan instalasi (SSH masuk, unduh, reboot, Windows hidup)
-digambar sebagai garis bertahap horizontal dengan empat titik: titik yang sudah
-lewat berisi aksen, titik aktif berdenyut halus, titik berikutnya kosong. Ini
-bukan daftar "how it works" berikon bulat bernomor; ini penunjuk posisi mesin
-pelanggan, muncul di halaman job dan di halaman tamu.
-
-## Aturan isi
-
-- Bahasa Indonesia, kalimat pendek, tanpa tanda pisah panjang.
-- Tidak ada emoji di web.
-- Tidak ada angka atau klaim yang tidak punya sumber. Jumlah install yang
-  ditampilkan hanya kalau dihitung dari database.
-- Setiap tombol punya tujuan nyata. Yang belum jadi tidak ditampilkan.
-- Tiga keadaan wajib ada di setiap tampilan data: kosong, sedang memuat, gagal.
-
-## Yang sengaja tidak dipakai
-
-Gradient, glow, kaca/blur, grid latar, ikon percikan/bintang, lencana pil di atas
-judul, animasi masuk pada setiap elemen, monospace untuk judul, dan tumpukan
-kartu fitur yang seragam.
+Visual progress stepper 4 tahap:
+`Diperiksa (SSH & KVM Check)` -> `Unduh Image Windows` -> `Reboot Mesin` -> `Windows & RDP Siap`
+Indikator titik aktif berdenyut halus, titik selesai bertanda centang, dan titik tertunda berwarna netral.

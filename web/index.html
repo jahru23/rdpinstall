@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Instal Windows di VPS Anda · rdpinstall</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#fbfaf7] text-[#0f172a] antialiased selection:bg-orange-500 selection:text-white min-h-screen">
+    <div id="root"></div>
+
+    <noscript>
+      <div style="padding: 24px; font-family: sans-serif; max-width: 600px; margin: 40px auto; background: #fff; border: 1px solid #e8e4dc; border-radius: 12px;">
+        <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 8px;">VPS Linux Anda, dijadikan Windows</h1>
+        <p style="color: #52525b; font-size: 14px; margin-bottom: 16px;">Aktifkan JavaScript di browser Anda untuk menjalankan wizard instalasi interaktif rdpinstall.</p>
+        <form method="post" action="/" style="display: flex; flex-direction: column; gap: 10px;">
+          <input name="voucher" placeholder="Kode voucer" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;" />
+          <input name="host" placeholder="Alamat IP VPS" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;" />
+          <input name="ssh_user" value="root" type="hidden" />
+          <input name="ssh_port" value="22" type="hidden" />
+          <input name="ssh_pass" type="password" placeholder="Password SSH" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;" />
+          <select name="edition" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+            <option value="srv2022">Windows Server 2022</option>
+          </select>
+          <input name="rdp_pass" type="password" placeholder="Password Windows" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;" />
+          <button type="submit" style="background: #ea580c; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold;">Pasang</button>
+        </form>
+      </div>
+    </noscript>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

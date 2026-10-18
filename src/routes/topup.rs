@@ -2,18 +2,18 @@
 //! klaim dilakukan dengan UPDATE bersyarat `status='pending'`, jadi polling
 //! berulang atau refresh tidak akan menambah saldo dua kali.
 
-use askama::Template;
 use axum::extract::{Form, Path, State};
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::http::header;
+use axum::response::{IntoResponse, Json, Redirect, Response};
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::auth::{CurrentUser, MaybeUser};
 use crate::db::now;
 use crate::error::{AppError, AppResult};
 use crate::models::Payment;
 use crate::paygate;
-use crate::routes::pages::render;
-use crate::views::{TopupDetailPage, TopupPage, TopupStatusCard};
+use crate::routes::pages::render_spa;
 use crate::SharedState;
 
 const PRESETS: [i64; 4] = [15_000, 25_000, 50_000, 100_000];
@@ -54,32 +54,35 @@ async fn history(state: &SharedState, user_id: i64) -> AppResult<Vec<Payment>> {
     .await?)
 }
 
-async fn page(
-    state: &SharedState,
-    user: crate::models::User,
-    error: &str,
-    notice: &str,
+pub async fn index(
+    State(state): State<SharedState>,
+    user: MaybeUser,
+    headers: axum::http::HeaderMap,
 ) -> Response {
-    let bal = balance(state, user.id).await;
-    let rows = history(state, user.id).await.unwrap_or_default();
-    let p = TopupPage {
-        user,
-        balance: bal,
-        payments: rows,
-        presets: PRESETS.to_vec(),
-        min: paygate::min_amount(&state.cfg.paygate_provider),
-        max: paygate::MAX_BASE_AMOUNT,
-        error: error.to_string(),
-        notice: notice.to_string(),
-    };
-    render(&p)
-}
-
-pub async fn index(State(state): State<SharedState>, user: MaybeUser) -> Response {
     let MaybeUser(Some(user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    page(&state, user, "", "").await
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if wants_json {
+        let bal = balance(&state, user.id).await;
+        let rows = history(&state, user.id).await.unwrap_or_default();
+        Json(json!({
+            "balance": bal,
+            "payments": rows,
+            "presets": PRESETS,
+            "min": paygate::min_amount(&state.cfg.paygate_provider),
+            "max": paygate::MAX_BASE_AMOUNT,
+        }))
+        .into_response()
+    } else {
+        render_spa().await
+    }
 }
 
 pub async fn create(
@@ -89,16 +92,16 @@ pub async fn create(
 ) -> Response {
     let amount: i64 = match form.amount.trim().parse() {
         Ok(a) => a,
-        Err(_) => return page(&state, user, "Nominal tidak valid.", "").await,
+        Err(_) => return AppError::bad("Nominal tidak valid.").into_response(),
     };
     if let Err(msg) = paygate::valid_amount(amount, &state.cfg.paygate_provider) {
-        return page(&state, user, &msg, "").await;
+        return AppError::bad(msg).into_response();
     }
 
     let reference = format!("rdpi-{}-{}", user.id, crate::crypto::random_token(4));
     let client = match client(&state) {
         Ok(c) => c,
-        Err(e) => return page(&state, user, &e.to_string(), "").await,
+        Err(e) => return AppError::bad(e.to_string()).into_response(),
     };
 
     let provider = state.cfg.paygate_provider.clone();
@@ -107,7 +110,7 @@ pub async fn create(
         .await
     {
         Ok(c) => c,
-        Err(e) => return page(&state, user, &e.to_string(), "").await,
+        Err(e) => return AppError::bad(e.to_string()).into_response(),
     };
 
     let ts = now();
@@ -145,30 +148,17 @@ pub async fn create(
 }
 
 pub async fn detail(
-    State(state): State<SharedState>,
+    State(_state): State<SharedState>,
     user: MaybeUser,
-    Path(reference): Path<String>,
+    Path(_reference): Path<String>,
 ) -> Response {
-    let MaybeUser(Some(user)) = user else {
+    let MaybeUser(Some(_user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    let card = match build_card(&state, user.id, &reference).await {
-        Ok(Some(c)) => c,
-        Ok(None) => return AppError::NotFound.into_response(),
-        Err(e) => return e.into_response(),
-    };
-    let card_html = match card.render() {
-        Ok(h) => h,
-        Err(e) => return AppError::Template(e).into_response(),
-    };
-    render(&TopupDetailPage {
-        user,
-        reference,
-        card_html,
-    })
+    render_spa().await
 }
 
-/// Dipanggil berkala oleh halaman detail: nilai status ke gateway lalu kirim kartu.
+/// Dipanggil berkala oleh halaman detail: nilai status ke gateway lalu kirim data json.
 pub async fn status(
     State(state): State<SharedState>,
     user: MaybeUser,
@@ -185,8 +175,6 @@ pub async fn status(
 
     if row.status == "pending" {
         if let Ok(c) = client(&state) {
-            // GoBiz tidak punya webhook upstream yang instan: paksa cek dulu
-            // supaya pembayaran terlihat tanpa menunggu siklus worker gateway.
             let forced = if state.cfg.paygate_provider == "gobiz" {
                 c.check_invoice(&row.gateway_id).await.ok().flatten()
             } else {
@@ -204,11 +192,30 @@ pub async fn status(
         }
     }
 
-    match build_card(&state, user.id, &reference).await {
-        Ok(Some(c)) => render(&c),
-        Ok(None) => AppError::NotFound.into_response(),
-        Err(e) => e.into_response(),
-    }
+    let bal = balance(&state, user.id).await;
+    let fee_note = if row.total_amount > row.amount && row.amount > 0 {
+        format!(
+            "Ditagih {} (nominal {} + biaya gateway). Saldo yang masuk {}.",
+            crate::views::rupiah(row.total_amount),
+            crate::views::rupiah(row.amount),
+            crate::views::rupiah(row.amount)
+        )
+    } else if row.total_amount > 0 {
+        format!(
+            "Ditagih {}. Saldo yang masuk sebesar itu.",
+            crate::views::rupiah(row.total_amount)
+        )
+    } else {
+        "Nominal ditagih dikonfirmasi gateway sebelum pembayaran.".to_string()
+    };
+
+    Json(json!({
+        "payment": row,
+        "balance": bal,
+        "fee_note": fee_note,
+        "status": row.status,
+    }))
+    .into_response()
 }
 
 pub async fn cancel(
@@ -312,49 +319,12 @@ async fn settle(state: &SharedState, row: &Payment, inv: &paygate::Invoice) -> A
     Ok(false)
 }
 
-async fn build_card(
-    state: &SharedState,
-    user_id: i64,
-    reference: &str,
-) -> AppResult<Option<TopupStatusCard>> {
-    let row = match load(state.clone(), user_id, reference).await? {
-        Some(r) => r,
-        None => return Ok(None),
-    };
-    let bal = balance(state, user_id).await;
-    let p = row;
-    // GoBiz tidak memisahkan biaya (base_amount/service_fee null), SumoPod menagih
-    // nominal + fee. Catatan ini dibentuk di sini supaya template tetap sederhana.
-    let fee_note = if p.total_amount > p.amount && p.amount > 0 {
-        format!(
-            "Ditagih {} (nominal {} + biaya gateway). Saldo yang masuk {}.",
-            crate::views::rupiah(p.total_amount),
-            crate::views::rupiah(p.amount),
-            crate::views::rupiah(p.amount)
-        )
-    } else if p.total_amount > 0 {
-        format!(
-            "Ditagih {}. Saldo yang masuk sebesar itu.",
-            crate::views::rupiah(p.total_amount)
-        )
-    } else {
-        "Nominal ditagih dikonfirmasi gateway sebelum pembayaran.".to_string()
-    };
-    Ok(Some(TopupStatusCard {
-        p,
-        balance: bal,
-        min: paygate::min_amount(&state.cfg.paygate_provider),
-        fee_note,
-    }))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::Config;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    /// Gateway tiruan: selalu menjawab body yang sama untuk semua request.
     async fn mock_gateway(body: &'static str) -> String {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addr = listener.local_addr().unwrap();
@@ -459,12 +429,12 @@ mod tests {
     }
 
     const PAID_BODY: &str = r#"{"success":true,"data":{"invoice":{
-        "id":"inv_test","provider":"sumopod","reference_id":"rdpi-1-x",
+        "id":"inv_test","provider":"gobiz","reference_id":"rdpi-1-x",
         "base_amount":15000,"service_fee":405,"amount":15405,"status":"paid",
         "transaction_id":"pay_test_1","paid_at":"2026-07-21T08:00:00.000Z"}}}"#;
 
     const PENDING_BODY: &str = r#"{"success":true,"data":{"invoice":{
-        "id":"inv_test","provider":"sumopod","reference_id":"rdpi-1-x",
+        "id":"inv_test","provider":"gobiz","reference_id":"rdpi-1-x",
         "base_amount":15000,"service_fee":405,"amount":15405,"status":"pending"}}}"#;
 
     const EXPIRED_BODY: &str = r#"{"success":true,"data":{"invoice":{
@@ -479,38 +449,26 @@ mod tests {
         let row = load_payment(&state, "rdpi-1-lunas").await;
         let client = client(&state).unwrap();
 
-        // polling pertama: menilai lunas, mengkredit
         let inv = client.invoice(&row.gateway_id).await.unwrap();
         assert!(settle(&state, &row, &inv).await.unwrap());
         assert_eq!(balance_of(&state).await, 15000);
 
-        // polling berulang (halaman di-refresh/dua tab): tidak boleh menambah saldo lagi
         let row2 = load_payment(&state, "rdpi-1-lunas").await;
         let inv2 = client.invoice(&row2.gateway_id).await.unwrap();
-        assert!(
-            !settle(&state, &row2, &inv2).await.unwrap(),
-            "klaim kedua harus gagal"
-        );
-        assert_eq!(
-            balance_of(&state).await,
-            15000,
-            "saldo tidak boleh bertambah dua kali"
-        );
+        assert!(!settle(&state, &row2, &inv2).await.unwrap());
+        assert_eq!(balance_of(&state).await, 15000);
 
         let after = load_payment(&state, "rdpi-1-lunas").await;
         assert_eq!(after.status, "paid");
         assert_eq!(after.total_amount, 15405);
-        assert_eq!(
-            after.txn_id, "pay_test_1",
-            "transaction_id tersimpan untuk dedup"
-        );
+        assert_eq!(after.txn_id, "pay_test_1");
         assert!(after.paid_at > 0);
 
         let ledger: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM ledger WHERE kind='topup'")
             .fetch_one(&state.pool)
             .await
             .unwrap();
-        assert_eq!(ledger, 1, "tepat satu baris ledger");
+        assert_eq!(ledger, 1);
 
         let _ = std::fs::remove_file(db);
     }

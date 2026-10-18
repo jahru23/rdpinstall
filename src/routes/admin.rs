@@ -4,15 +4,16 @@
 //! disembunyikan dari rute, tapi setiap handler memeriksa ulang id-nya.
 
 use axum::extract::{Form, Path, State};
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::http::header;
+use axum::response::{IntoResponse, Json, Redirect, Response};
 use serde::Deserialize;
+use serde_json::json;
 
 use crate::auth::{CurrentUser, MaybeUser};
 use crate::db::now;
 use crate::error::{AppError, AppResult};
 use crate::models::{User, Voucher};
-use crate::routes::pages::render;
-use crate::views::AdminVouchersPage;
+use crate::routes::pages::render_spa;
 use crate::SharedState;
 
 #[derive(Debug, Deserialize)]
@@ -40,25 +41,36 @@ async fn vouchers(state: &SharedState) -> AppResult<Vec<Voucher>> {
     .await?)
 }
 
-async fn page(state: &SharedState, user: User, notice: &str) -> Response {
-    let rows = vouchers(state).await.unwrap_or_default();
-    let free = rows.iter().filter(|v| v.is_free()).count() as i64;
-    render(&AdminVouchersPage {
-        user,
-        vouchers: rows,
-        free,
-        notice: notice.to_string(),
-    })
-}
-
-pub async fn index(State(state): State<SharedState>, user: MaybeUser) -> Response {
+pub async fn index(
+    State(state): State<SharedState>,
+    user: MaybeUser,
+    headers: axum::http::HeaderMap,
+) -> Response {
     let MaybeUser(Some(user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
     if !is_admin(&state, &user) {
         return AppError::NotFound.into_response();
     }
-    page(&state, user, "").await
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if wants_json {
+        let rows = vouchers(&state).await.unwrap_or_default();
+        let free = rows.iter().filter(|v| v.is_free()).count() as i64;
+        Json(json!({
+            "vouchers": rows,
+            "free": free,
+            "is_admin": true,
+        }))
+        .into_response()
+    } else {
+        render_spa().await
+    }
 }
 
 pub async fn create(
@@ -73,7 +85,6 @@ pub async fn create(
     let ts = now();
     let mut made = Vec::new();
     for _ in 0..count {
-        // Kode dibaca manusia: tiga kelompok huruf/angka, tanpa karakter mirip.
         let code = format!(
             "RDP-{}-{}",
             crate::crypto::random_code(4),
@@ -92,12 +103,7 @@ pub async fn create(
             made.push(code);
         }
     }
-    let notice = if made.is_empty() {
-        "Tidak ada voucer baru yang dibuat.".to_string()
-    } else {
-        format!("{} voucer baru: {}", made.len(), made.join(", "))
-    };
-    page(&state, user, &notice).await
+    Redirect::to("/admin/vouchers").into_response()
 }
 
 pub async fn revoke(

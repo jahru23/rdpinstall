@@ -13,8 +13,6 @@ pub enum AppError {
     Unauthorized,
     #[error("tidak ditemukan")]
     NotFound,
-    #[error("template: {0}")]
-    Template(#[from] askama::Error),
 }
 
 pub type AppResult<T> = Result<T, AppError>;
@@ -49,11 +47,13 @@ impl IntoResponse for AppError {
         let body = format!(
             r#"<!doctype html><html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{} · rdpinstall</title><link rel="stylesheet" href="/static/style.css"></head>
-<body><main class="wrap narrow"><div class="card center">
-<p class="code">{}</p><p class="muted">{}</p>
-<p><a class="btn" href="/">kembali ke halaman depan</a></p>
-</div></main></body></html>"#,
+<title>{} · rdpinstall</title><link rel="stylesheet" href="/assets/index.css"></head>
+<body style="background:#fbfaf7;font-family:sans-serif;color:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;">
+<div style="background:#fff;border:1px solid #e8e4dc;border-radius:12px;padding:32px;text-align:center;max-width:400px;box-shadow:0 4px 20px rgba(0,0,0,0.05);">
+<p style="font-size:32px;font-weight:bold;margin:0 0 8px;color:#ea580c;">{}</p>
+<p style="color:#52525b;font-size:14px;margin:0 0 20px;">{}</p>
+<p><a style="background:#ea580c;color:#fff;text-decoration:none;font-weight:bold;padding:10px 18px;border-radius:8px;font-size:14px;" href="/">kembali ke halaman depan</a></p>
+</div></body></html>"#,
             status.as_u16(),
             status.as_u16(),
             html_escape(&msg)

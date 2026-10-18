@@ -4,20 +4,21 @@
 //! kredensial yang bisa dilihat lagi selama masa simpan belum habis.
 
 use axum::extract::{Form, Path, State};
+use axum::http::header;
 use axum::response::sse::{Event, Sse};
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::{IntoResponse, Json, Redirect, Response};
 use serde::Deserialize;
+use serde_json::json;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::auth::{CurrentUser, MaybeUser};
 use crate::db::now;
 use crate::error::{AppError, AppResult};
 use crate::jobs;
-use crate::models::{Job, User};
-use crate::reinstall::{Edition, Lang};
-use crate::routes::pages::render;
+use crate::models::Job;
+use crate::reinstall::Lang;
+use crate::routes::pages::render_spa;
 use crate::validate;
-use crate::views::{InstallPage, JobCard, JobPage};
 use crate::SharedState;
 
 const MAX_ACTIVE_JOBS: i64 = 2;
@@ -54,28 +55,17 @@ async fn balance_of(state: &SharedState, user_id: i64) -> i64 {
         .unwrap_or(0)
 }
 
-fn page(user: User, balance: i64, price: i64, error: &str, notice: &str) -> Response {
-    render(&InstallPage {
-        user,
-        editions: Edition::ALL.to_vec(),
-        balance,
-        price,
-        error: error.to_string(),
-        notice: notice.to_string(),
-    })
-}
-
-pub async fn wizard(State(state): State<SharedState>, user: MaybeUser) -> Response {
-    let MaybeUser(Some(user)) = user else {
+pub async fn wizard(_state: State<SharedState>, user: MaybeUser) -> Response {
+    let MaybeUser(Some(_user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    let balance = balance_of(&state, user.id).await;
-    page(user, balance, state.cfg.price_per_install, "", "")
+    render_spa().await
 }
 
 pub async fn create(
     State(state): State<SharedState>,
     CurrentUser(user): CurrentUser,
+    headers: axum::http::HeaderMap,
     Form(f): Form<InstallForm>,
 ) -> Response {
     let balance = balance_of(&state, user.id).await;
@@ -89,35 +79,30 @@ pub async fn create(
     .await
     .unwrap_or(0);
     if active >= MAX_ACTIVE_JOBS {
-        return page(
-            user,
-            balance,
-            price,
-            "Masih ada instalasi berjalan. Tunggu sampai selesai.",
-            "",
-        );
+        return AppError::bad("Masih ada instalasi berjalan. Tunggu sampai selesai.")
+            .into_response();
     }
     if balance < price {
-        return page(user, balance, price, "Saldo tidak cukup. Topup dulu.", "");
+        return AppError::bad("Saldo tidak cukup. Topup dulu.").into_response();
     }
 
     let host = match validate::host(&f.host) {
         Ok(h) => h,
-        Err(e) => return page(user, balance, price, &e.to_string(), ""),
+        Err(e) => return e.into_response(),
     };
     let ssh_user = match validate::ssh_user(&f.ssh_user) {
         Ok(u) => u,
-        Err(e) => return page(user, balance, price, &e.to_string(), ""),
+        Err(e) => return e.into_response(),
     };
     let rdp_user = match validate::rdp_user(&f.rdp_user) {
         Ok(u) => u,
-        Err(e) => return page(user, balance, price, &e.to_string(), ""),
+        Err(e) => return e.into_response(),
     };
     if f.ssh_pass.is_empty() {
-        return page(user, balance, price, "Password SSH wajib diisi.", "");
+        return AppError::bad("Password SSH wajib diisi.").into_response();
     }
     if let Err(e) = validate::windows_password(&f.rdp_pass) {
-        return page(user, balance, price, &e.to_string(), "");
+        return e.into_response();
     }
 
     let ssh_port = validate::port(&f.ssh_port, 22);
@@ -153,13 +138,7 @@ pub async fn create(
         Ok(r) if r.rows_affected() == 1 => {}
         Ok(_) => {
             let _ = tx.rollback().await;
-            return page(
-                user,
-                balance,
-                price,
-                "Saldo berubah saat proses. Coba lagi.",
-                "",
-            );
+            return AppError::bad("Saldo berubah saat proses. Coba lagi.").into_response();
         }
         Err(e) => return AppError::Db(e).into_response(),
     }
@@ -214,21 +193,44 @@ pub async fn create(
 
     tracing::info!("job {job_id} dibuat user {} untuk {}", user.id, host);
     jobs::spawn(state.clone(), job_id);
-    Redirect::to(&format!("/j/{job_id}")).into_response()
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if wants_json {
+        Json(json!({ "job_id": job_id, "redirect": format!("/j/{job_id}") })).into_response()
+    } else {
+        Redirect::to(&format!("/j/{job_id}")).into_response()
+    }
 }
 
 pub async fn detail(
     State(state): State<SharedState>,
     user: MaybeUser,
     Path(id): Path<i64>,
+    headers: axum::http::HeaderMap,
 ) -> Response {
     let MaybeUser(Some(user)) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    match build_card(&state, user.id, id).await {
-        Ok(Some(card)) => render(&JobPage { user, card }),
-        Ok(None) => AppError::NotFound.into_response(),
-        Err(e) => e.into_response(),
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if wants_json {
+        match build_card_data(&state, user.id, id).await {
+            Ok(Some(data)) => Json(data).into_response(),
+            Ok(None) => AppError::NotFound.into_response(),
+            Err(e) => e.into_response(),
+        }
+    } else {
+        render_spa().await
     }
 }
 
@@ -240,7 +242,7 @@ pub async fn events(
     let MaybeUser(Some(user)) = user else {
         return AppError::Unauthorized.into_response();
     };
-    if build_card(&state, user.id, id)
+    if build_card_data(&state, user.id, id)
         .await
         .ok()
         .flatten()
@@ -255,13 +257,12 @@ pub async fn events(
         let mut last = String::new();
         let started = std::time::Instant::now();
         loop {
-            if let Ok(Some(card)) = build_card(&state2, user_id, id).await {
-                if let Ok(html) = askama::Template::render(&card) {
-                    let flat = html.replace('\n', "");
-                    if flat != last {
-                        last = flat.clone();
+            if let Ok(Some(data)) = build_card_data(&state2, user_id, id).await {
+                if let Ok(json_str) = serde_json::to_string(&data) {
+                    if json_str != last {
+                        last = json_str.clone();
                         if tx
-                            .send(Ok(Event::default().event("card").data(flat)))
+                            .send(Ok(Event::default().event("card").data(json_str)))
                             .await
                             .is_err()
                         {
@@ -271,7 +272,7 @@ pub async fn events(
                 }
             }
             if started.elapsed().as_secs() > 30
-                && (last.contains("badge ok") || last.contains("badge bad"))
+                && (last.contains("\"done\"") || last.contains("\"failed\""))
             {
                 break;
             }
@@ -324,11 +325,11 @@ pub async fn wipe(
     Redirect::to(&format!("/j/{id}")).into_response()
 }
 
-pub async fn build_card(
+pub async fn build_card_data(
     state: &SharedState,
     user_id: i64,
     job_id: i64,
-) -> AppResult<Option<JobCard>> {
+) -> AppResult<Option<serde_json::Value>> {
     let job = sqlx::query_as::<_, Job>(
         "SELECT id, user_id, mode, provider, status, phase, progress, os_label, zone, plan, host, rdp_port,
                 rdp_user, provider_ref, error, created_at, updated_at, done_at, expires_at, wiped,
@@ -361,9 +362,30 @@ pub async fn build_card(
     .await
     .unwrap_or_default();
 
-    Ok(Some(JobCard {
-        job,
-        password,
-        events,
-    }))
+    let rail = crate::views::rail_for(&job);
+
+    Ok(Some(json!({
+        "id": job.id,
+        "status": job.status,
+        "phase": job.phase,
+        "progress": job.progress,
+        "os_label": job.os_label,
+        "host": job.host,
+        "rdp_port": job.rdp_port,
+        "rdp_user": job.rdp_user,
+        "ssh_port": job.ssh_port,
+        "ssh_user": job.ssh_user,
+        "guest": job.guest,
+        "voucher_code": job.voucher_code,
+        "edition": job.edition,
+        "lang": job.lang,
+        "error": job.error,
+        "created_at": job.created_at,
+        "done_at": job.done_at,
+        "expires_at": job.expires_at,
+        "wiped": job.wiped,
+        "password": password,
+        "events": events,
+        "rail": rail,
+    })))
 }

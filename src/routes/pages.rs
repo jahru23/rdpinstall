@@ -1,57 +1,65 @@
-use askama::Template;
 use axum::extract::State;
-use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Redirect, Response};
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Json, Redirect, Response};
+use serde_json::json;
 
 use crate::auth::MaybeUser;
 use crate::error::AppResult;
 use crate::models::{Job, User};
-use crate::views::{DashboardPage, LoginPage};
+use crate::routes::assets::FrontendAssets;
 use crate::SharedState;
 
-pub fn render<T: Template>(tpl: &T) -> Response {
-    match tpl.render() {
-        Ok(body) => Html(body).into_response(),
-        Err(e) => {
-            tracing::error!("render template gagal: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Html(error_page(500, "Halaman gagal disusun. Coba muat ulang.")),
-            )
-                .into_response()
-        }
+pub async fn render_spa() -> Response {
+    if let Some(index) = FrontendAssets::get("index.html") {
+        return (
+            [
+                (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+                (header::CACHE_CONTROL, "no-cache"),
+            ],
+            index.data,
+        )
+            .into_response();
     }
-}
-
-pub fn error_page(code: u16, message: &str) -> String {
-    format!(
-        r#"<!doctype html><html lang="id"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{code} · rdpinstall</title><link rel="stylesheet" href="/static/style.css"></head>
-<body><main class="wrap narrow"><div class="card center">
-<p class="code">{code}</p><p class="muted">{message}</p>
-<p><a class="btn" href="/">kembali ke halaman depan</a></p></div></main></body></html>"#
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "SPA index.html not found",
     )
+        .into_response()
 }
 
-pub async fn login(State(state): State<SharedState>, user: MaybeUser) -> Response {
+pub async fn login(_state: State<SharedState>, user: MaybeUser) -> Response {
     if user.0.is_some() {
         return Redirect::to("/dashboard").into_response();
     }
-    render(&LoginPage::new(&state.cfg, ""))
+    render_spa().await
 }
 
-pub async fn dashboard(State(state): State<SharedState>, MaybeUser(user): MaybeUser) -> Response {
+pub async fn dashboard(
+    State(state): State<SharedState>,
+    MaybeUser(user): MaybeUser,
+    headers: axum::http::HeaderMap,
+) -> Response {
     let Some(user) = user else {
         return Redirect::to("/masuk").into_response();
     };
-    match dashboard_page(&state, user).await {
-        Ok(r) => r,
-        Err(e) => e.into_response(),
+
+    let wants_json = headers
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.contains("application/json"))
+        .unwrap_or(false);
+
+    if wants_json {
+        match get_dashboard_data(&state, user).await {
+            Ok(data) => Json(data).into_response(),
+            Err(e) => e.into_response(),
+        }
+    } else {
+        render_spa().await
     }
 }
 
-pub async fn dashboard_page(state: &SharedState, user: User) -> AppResult<Response> {
+pub async fn get_dashboard_data(state: &SharedState, user: User) -> AppResult<serde_json::Value> {
     let balance: i64 = sqlx::query_scalar("SELECT amount FROM balances WHERE user_id = ?")
         .bind(user.id)
         .fetch_optional(&state.pool)
@@ -73,19 +81,20 @@ pub async fn dashboard_page(state: &SharedState, user: User) -> AppResult<Respon
         .map(|id| state.cfg.admin_tg_ids.contains(&id))
         .unwrap_or(false);
 
-    Ok(render(&DashboardPage {
-        user,
-        balance,
-        jobs,
-        price: state.cfg.price_per_install,
-        is_admin,
+    Ok(json!({
+        "user": user,
+        "balance": balance,
+        "jobs": jobs,
+        "price": state.cfg.price_per_install,
+        "is_admin": is_admin,
     }))
 }
 
-pub async fn not_found() -> Response {
-    (
-        StatusCode::NOT_FOUND,
-        Html(error_page(404, "Halaman ini tidak ada.")),
-    )
-        .into_response()
+pub async fn not_found(uri: axum::http::Uri) -> Response {
+    let path = uri.path();
+    if path.starts_with("/api/") || path.ends_with(".json") {
+        return (StatusCode::NOT_FOUND, Json(json!({"error": "not_found"}))).into_response();
+    }
+    // Any browser direct path fallback to SPA
+    render_spa().await
 }

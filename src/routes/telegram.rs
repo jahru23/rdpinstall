@@ -1,24 +1,15 @@
-use askama::Template;
 use axum::extract::{Query, State};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::cookie::CookieJar;
 
 use crate::auth;
+use crate::error::AppError;
 use crate::models::TelegramAuth;
-use crate::views::LoginPage;
 use crate::SharedState;
 
-fn bad_login(state: &SharedState, msg: &str) -> Response {
-    let page = LoginPage::new(&state.cfg, msg);
-    let body = page
-        .render()
-        .unwrap_or_else(|_| "<p>login error</p>".to_string());
-    (
-        axum::http::StatusCode::UNAUTHORIZED,
-        axum::response::Html(body),
-    )
-        .into_response()
+fn bad_login(msg: &str) -> Response {
+    AppError::bad(msg).into_response()
 }
 
 /// Telegram Login Widget redirect: /auth/telegram?id=..&hash=..
@@ -30,10 +21,10 @@ pub async fn callback(
 ) -> Response {
     if !auth::verify_telegram(&state.cfg.bot_token, &tg.signed_fields(), &tg.hash) {
         tracing::warn!("login Telegram ditolak: hash tidak cocok (tg_id={})", tg.id);
-        return bad_login(&state, "Verifikasi Telegram gagal. Coba lagi.");
+        return bad_login("Verifikasi Telegram gagal. Coba lagi.");
     }
     if !auth::auth_date_fresh(tg.auth_date) {
-        return bad_login(&state, "Sesi Telegram kedaluwarsa. Ulangi login.");
+        return bad_login("Sesi Telegram kedaluwarsa. Ulangi login.");
     }
 
     let user = match auth::upsert_user(&state, &tg).await {
@@ -41,7 +32,7 @@ pub async fn callback(
         Err(e) => return e.into_response(),
     };
     if user.banned != 0 {
-        return bad_login(&state, "Akun ini diblokir.");
+        return bad_login("Akun ini diblokir.");
     }
 
     let ip = auth::client_ip(&headers);
