@@ -10,6 +10,7 @@ import {
   X,
   User as UserIcon,
   Plus,
+  ExternalLink,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -212,15 +213,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="p-3.5 rounded-xl bg-orange-50/60 border border-orange-200/60 text-xs text-orange-900 flex items-center justify-between">
-                  <span>Mode Tamu (Tanpa Akun)</span>
-                  <button
-                    type="button"
-                    onClick={handleLogin}
-                    className="font-bold text-orange-700 underline text-xs"
-                  >
-                    Masuk
-                  </button>
+                <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/70 text-xs text-orange-950 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">Mode Tamu (Tanpa Akun)</span>
+                    <button
+                      type="button"
+                      onClick={handleLogin}
+                      className="font-bold text-orange-700 underline text-xs"
+                    >
+                      Masuk
+                    </button>
+                  </div>
+                  <div className="pt-2 border-t border-orange-200/50">
+                    <span className="text-[11px] text-[#71717a] block">Beli voucer instalasi:</span>
+                    <a
+                      href="https://t.me/panel_jayxbot"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-orange-600 hover:underline inline-flex items-center gap-1 text-xs mt-0.5"
+                    >
+                      <span>Bot Telegram @panel_jayxbot</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
               )}
 

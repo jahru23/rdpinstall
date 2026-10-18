@@ -15,6 +15,7 @@ import {
   Sparkles,
   HelpCircle,
   Clock,
+  ExternalLink,
 } from 'lucide-react';
 
 interface GuestWizardProps {
@@ -303,7 +304,15 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 <span>Masukkan Kode Voucer</span>
               </h2>
               <p className="text-xs sm:text-sm text-[#52525b] mt-1">
-                Voucer sekali pakai untuk satu kali sesi instalasi Windows.
+                Voucer sekali pakai untuk satu kali sesi instalasi Windows. Belum punya? Beli di Telegram Bot{' '}
+                <a
+                  href="https://t.me/panel_jayxbot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-orange-600 hover:underline"
+                >
+                  @panel_jayxbot
+                </a>.
               </p>
             </div>
 
@@ -385,9 +394,20 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                 </div>
               )}
 
-              <p className="text-[11px] sm:text-xs text-[#71717a] mt-1.5">
-                Dapatkan kode voucer dari JayStore (@InstallXJayBot).
-              </p>
+              <div className="mt-2.5 pt-2 border-t border-[#e8e4dc]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                <span className="text-[#71717a] text-[11px] sm:text-xs">
+                  Beli kode voucer otomatis 24 jam:
+                </span>
+                <a
+                  href="https://t.me/panel_jayxbot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-orange-600 hover:text-orange-700 hover:underline inline-flex items-center gap-1 text-[11px] sm:text-xs"
+                >
+                  <span>Buka Bot @panel_jayxbot</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
 
             <div className="pt-3 sm:pt-4 flex justify-end">
