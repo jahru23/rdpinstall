@@ -1,0 +1,63 @@
+<section class="card">
+  <div class="cardhead">
+    <h2>Job #{{ job.id }} · {{ job.os_label }}</h2>
+    <span class="badge {{ job.status_class() }}">{{ job.status }}</span>
+  </div>
+
+  <div class="bar"><span style="width: {{ job.progress }}%"></span></div>
+  <p class="muted">{{ job.phase }}{% if job.is_active() %} <span class="mono">{{ job.progress }}%</span>{% endif %}</p>
+
+  <div class="kv">
+    <div><span class="k">Lokasi</span><span class="v mono">{{ job.zone }}</span></div>
+    <div><span class="k">Plan</span><span class="v mono">{{ job.plan }}</span></div>
+    <div><span class="k">Dibuat</span><span class="v">{{ dt(job.created_at) }}</span></div>
+    {% if job.done_at > 0 %}<div><span class="k">RDP siap</span><span class="v">{{ dt(job.done_at) }}</span></div>{% endif %}
+  </div>
+
+  {% if !job.error.is_empty() %}
+  <p class="alert">{{ job.error }}</p>
+  {% endif %}
+
+  {% if job.status == "done" %}
+  <div class="creds">
+    <div class="cred"><span class="k">IP</span><span class="v mono" id="hv">{{ job.host }}</span><button class="btn ghost small" data-copy="hv">salin</button></div>
+    <div class="cred"><span class="k">Port</span><span class="v mono" id="pv">{{ job.rdp_port }}</span><button class="btn ghost small" data-copy="pv">salin</button></div>
+    <div class="cred"><span class="k">User</span><span class="v mono" id="uv">{{ job.rdp_user }}</span><button class="btn ghost small" data-copy="uv">salin</button></div>
+    {% if let Some(pw) = password %}
+    <div class="cred"><span class="k">Password</span><span class="v mono" id="pwv">{{ pw }}</span><button class="btn ghost small" data-copy="pwv">salin</button></div>
+    {% endif %}
+    {% if let Some(pw) = password %}
+    <p class="muted small">Password hilang otomatis {{ dt(job.expires_at) }}. Ganti setelah login pertama.</p>
+    {% else %}
+    {% if job.wiped == 1 %}
+    <p class="muted small">Password sudah dihapus karena masa simpan habis. Reset lewat panel UpCloud bila perlu.</p>
+    {% else %}
+    <p class="muted small">UpCloud tidak mengirim password di respons create — setel ulang lewat panel UpCloud.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if !events.is_empty() %}
+  <div class="log">
+    {% for e in events %}
+    <div class="logline"><span class="dim">{{ dt(e.ts) }}</span> <span class="mono">{{ e.phase }}</span>
+      {% if !e.message.is_empty() %}<span class="dim">{{ e.message }}</span>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="row">
+    {% if job.status == "done" || job.status == "failed" %}
+    {% if job.status == "done" %}
+    <form method="post" action="/jobs/{{ job.id }}/destroy"
+          onsubmit="return confirm('Hapus server di UpCloud? Tindakan ini tidak bisa dibatalkan.');">
+      <button class="btn ghost small" type="submit">hancurkan server</button>
+    </form>
+    {% endif %}
+    <a class="btn ghost small" href="/install">install baru</a>
+    {% else %}
+    <span class="muted small">biarkan tab ini terbuka — status diperbarui otomatis.</span>
+    {% endif %}
+  </div>
+</section>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Job #{{ card.job.id }} — RDP Installer{% endblock %}
+
+{% block topnav %}
+<div class="topnav">
+  <a class="btn ghost small" href="/">dashboard</a>
+  <a class="btn ghost small" href="/install">install baru</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<noscript>
+  <p class="alert">JavaScript dimatikan — progres tidak akan berubah sendiri. Muat ulang halaman untuk memperbarui.</p>
+</noscript>
+
+<div id="jobcard">
+  <section class="card">
+    <div class="cardhead">
+      <h2>Job #{{ card.job.id }} · {{ card.job.os_label }}</h2>
+      <span class="badge {{ card.job.status_class() }}">{{ card.job.status }}</span>
+    </div>
+    <p class="muted">{{ card.job.phase }}</p>
+    {% if card.job.status == "done" %}
+    <p class="mono">{{ card.job.host }}:{{ card.job.rdp_port }} · {{ card.job.rdp_user }}</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+(function () {
+  var box = document.getElementById("jobcard");
+  var es = new EventSource("/jobs/{{ card.job.id }}/events");
+  es.addEventListener("card", function (ev) {
+    box.innerHTML = ev.data;
+    var btn = box.querySelector("[data-copy]");
+    if (btn && !btn.dataset.bound) {
+      btn.dataset.bound = "1";
+      btn.addEventListener("click", function () {
+        var el = document.getElementById(btn.dataset.copy);
+        if (!el) return;
+        navigator.clipboard.writeText(el.textContent.trim()).then(function () {
+          btn.textContent = "tersalin";
+          setTimeout(function () { btn.textContent = "salin"; }, 1500);
+        });
+      });
+    }
+  });
+  es.onerror = function () { es.close(); };
+})();
+</script>
+{% endblock %}

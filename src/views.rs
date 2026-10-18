@@ -1,6 +1,7 @@
 use askama::Template;
 
-use crate::models::{CloudAccount, Job, User};
+use crate::models::{CloudAccount, Job, JobEvent, User};
+use crate::upcloud::{Plan, Template as WinTemplate, Zone};
 
 #[derive(Template)]
 #[template(path = "login.html")]
@@ -84,4 +85,44 @@ pub fn dt(ts: i64) -> String {
             wib.format("%d %b %Y %H:%M").to_string()
         })
         .unwrap_or_else(|| "-".into())
+}
+
+#[derive(Template)]
+#[template(path = "install.html")]
+pub struct InstallPage {
+    pub user: User,
+    pub accounts: Vec<CloudAccount>,
+    pub zones: Vec<Zone>,
+    pub plans: Vec<Plan>,
+    pub templates: Vec<WinTemplate>,
+    pub balance: i64,
+    pub price: i64,
+    pub error: String,
+}
+
+impl InstallPage {
+    pub fn rupiah(&self, n: &i64) -> String {
+        rupiah(*n)
+    }
+}
+
+#[derive(Template)]
+#[template(path = "job.html")]
+pub struct JobPage {
+    pub user: User,
+    pub card: JobCard,
+}
+
+#[derive(Template)]
+#[template(path = "job_card.html")]
+pub struct JobCard {
+    pub job: Job,
+    pub password: Option<String>,
+    pub events: Vec<JobEvent>,
+}
+
+impl JobCard {
+    pub fn dt(&self, ts: &i64) -> String {
+        dt(*ts)
+    }
 }

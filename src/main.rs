@@ -6,6 +6,7 @@ mod config;
 mod crypto;
 mod db;
 mod error;
+mod jobs;
 mod models;
 mod routes;
 mod upcloud;
@@ -55,6 +56,8 @@ async fn main() -> Result<()> {
     let app = routes::router(state.clone())
         .layer(RequestBodyLimitLayer::new(64 * 1024))
         .layer(TraceLayer::new_for_http());
+
+    jobs::spawn_janitor(state.clone());
 
     let listener = tokio::net::TcpListener::bind(&cfg.bind).await?;
     tracing::info!(

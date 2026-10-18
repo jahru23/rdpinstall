@@ -57,6 +57,7 @@ pub struct Job {
     pub host: String,
     pub rdp_port: i64,
     pub rdp_user: String,
+    pub provider_ref: String,
     pub error: String,
     pub created_at: i64,
     pub updated_at: i64,
@@ -78,6 +79,13 @@ impl Job {
     pub fn is_active(&self) -> bool {
         matches!(self.status.as_str(), "queued" | "running")
     }
+}
+
+#[derive(Debug, Clone, FromRow)]
+pub struct JobEvent {
+    pub ts: i64,
+    pub phase: String,
+    pub message: String,
 }
 
 #[derive(Debug, Clone, FromRow)]

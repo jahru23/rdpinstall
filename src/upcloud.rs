@@ -136,9 +136,16 @@ pub struct Template {
     pub access: String,
     #[serde(default)]
     pub template_type: String,
+    #[serde(default)]
+    pub tier: Option<String>,
 }
 
 impl Template {
+    /// Tier (maxiops/hdd) dari template, kalau API menyebutkannya.
+    pub fn tier_hint(&self) -> Option<String> {
+        self.tier.clone().filter(|t| !t.is_empty())
+    }
+
     pub fn is_windows(&self) -> bool {
         let t = self.title.to_lowercase();
         t.contains("windows") || t.contains("server 20")
@@ -384,5 +391,310 @@ mod tests {
     fn error_display_is_readable() {
         let e = Error::Auth("HTTP 401".into());
         assert!(e.to_string().starts_with("Token ditolak UpCloud"));
+    }
+}
+
+// ---------------------------------------------------------------- servers
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ServerIp {
+    #[serde(default)]
+    pub access: String,
+    #[serde(default)]
+    pub address: String,
+    #[serde(default)]
+    pub family: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Server {
+    #[serde(default)]
+    pub uuid: String,
+    #[serde(default)]
+    pub state: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub hostname: String,
+    #[serde(default)]
+    pub zone: String,
+    #[serde(default)]
+    pub plan: String,
+    /// Hanya ada di respons pembuatan server Windows.
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub ip_addresses: Option<ServerIps>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ServerIps {
+    #[serde(default)]
+    pub ip_address: Vec<ServerIp>,
+}
+
+impl Server {
+    pub fn public_ipv4(&self) -> Option<String> {
+        self.ip_addresses
+            .as_ref()?
+            .ip_address
+            .iter()
+            .find(|i| {
+                i.access.eq_ignore_ascii_case("public") && i.family.eq_ignore_ascii_case("IPv4")
+            })
+            .map(|i| i.address.clone())
+            .filter(|a| !a.is_empty())
+    }
+
+    pub fn is_started(&self) -> bool {
+        self.state.eq_ignore_ascii_case("started")
+    }
+
+    pub fn is_failed_state(&self) -> bool {
+        matches!(
+            self.state.to_ascii_lowercase().as_str(),
+            "error" | "maintenance" | "unknown"
+        )
+    }
+}
+
+/// Permintaan pembuatan server: clone template publik + satu interface publik.
+#[derive(Debug, Clone)]
+pub struct CreateSpec {
+    pub zone: String,
+    pub title: String,
+    pub hostname: String,
+    pub plan: String,
+    pub template_uuid: String,
+    pub storage_title: String,
+    pub storage_size_gb: i64,
+    pub storage_tier: Option<String>,
+}
+
+/// Hostname UpCloud: huruf/angka/strip, maksimum 63, tanpa titik di ujung.
+pub fn safe_hostname(raw: &str) -> String {
+    let mut h: String = raw
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    while h.contains("--") {
+        h = h.replace("--", "-");
+    }
+    let h = h.trim_matches('-').to_string();
+    let mut out = if h.is_empty() {
+        "win-rdp".to_string()
+    } else {
+        h
+    };
+    out.truncate(45);
+    format!("{out}-{}", crate::crypto::random_token(2))
+}
+
+impl CreateSpec {
+    pub fn to_body(&self) -> Value {
+        let mut device = serde_json::json!({
+            "action": "clone",
+            "storage": self.template_uuid,
+            "title": self.storage_title,
+        });
+        if self.storage_size_gb > 0 {
+            device["size"] = serde_json::json!(self.storage_size_gb);
+        }
+        if let Some(tier) = &self.storage_tier {
+            if !tier.is_empty() {
+                device["tier"] = serde_json::json!(tier);
+            }
+        }
+        serde_json::json!({
+            "server": {
+                "zone": self.zone,
+                "title": self.title,
+                "hostname": self.hostname,
+                "plan": self.plan,
+                "metadata": "yes",
+                "storage_devices": { "storage_device": [device] },
+                "networking": {
+                    "interfaces": {
+                        "interface": [
+                            { "type": "public", "ip_addresses": { "ip_address": [ { "family": "IPv4" } ] } },
+                            { "type": "utility", "ip_addresses": { "ip_address": [ { "family": "IPv4" } ] } }
+                        ]
+                    }
+                }
+            }
+        })
+    }
+}
+
+impl Client {
+    async fn post(&self, path: &str, body: &Value) -> Result<Value, Error> {
+        let url = format!("{}{}", self.base, path);
+        let res = self
+            .http
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.token))
+            .header("Accept", "application/json")
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        if status.as_u16() == 401 || status.as_u16() == 403 {
+            return Err(Error::Auth(format!("HTTP {}", status.as_u16())));
+        }
+        if !status.is_success() {
+            return Err(Error::Api {
+                status: status.as_u16(),
+                message: first_error_message(&text),
+            });
+        }
+        serde_json::from_str::<Value>(&text).map_err(|e| Error::Decode(e.to_string()))
+    }
+
+    async fn delete(&self, path: &str) -> Result<(), Error> {
+        let url = format!("{}{}", self.base, path);
+        let res = self
+            .http
+            .delete(&url)
+            .header("Authorization", format!("Bearer {}", self.token))
+            .send()
+            .await
+            .map_err(|e| Error::Transport(e.to_string()))?;
+        if res.status().is_success() || res.status().as_u16() == 404 {
+            return Ok(());
+        }
+        Err(Error::Api {
+            status: res.status().as_u16(),
+            message: first_error_message(&res.text().await.unwrap_or_default()),
+        })
+    }
+
+    /// Membuat server dari template. Untuk template Windows, UpCloud
+    /// mengembalikan password Administrator di respons ini — satu-satunya
+    /// kesempatan mengambilnya.
+    pub async fn create_server(&self, spec: &CreateSpec) -> Result<Server, Error> {
+        let v = self.post("/server", &spec.to_body()).await?;
+        let s = v
+            .get("server")
+            .ok_or_else(|| Error::Decode("respons tanpa objek server".into()))?;
+        serde_json::from_value(s.clone()).map_err(|e| Error::Decode(e.to_string()))
+    }
+
+    pub async fn server(&self, uuid: &str) -> Result<Server, Error> {
+        let v = self.get(&format!("/server/{uuid}")).await?;
+        let s = v
+            .get("server")
+            .ok_or_else(|| Error::Decode("respons tanpa objek server".into()))?;
+        serde_json::from_value(s.clone()).map_err(|e| Error::Decode(e.to_string()))
+    }
+
+    pub async fn delete_server(&self, uuid: &str) -> Result<(), Error> {
+        self.delete(&format!("/server/{uuid}")).await
+    }
+}
+
+#[cfg(test)]
+mod server_tests {
+    use super::*;
+
+    const CREATED: &str = r#"{"server":{
+        "boot_order":"disk","core_number":"2","firewall":"on","hostname":"win-rdp-ab12",
+        "ip_addresses":{"ip_address":[
+            {"access":"utility","address":"10.0.0.0","family":"IPv4"},
+            {"access":"public","address":"94.237.10.20","family":"IPv4"},
+            {"access":"public","address":"2a01:4f8::1","family":"IPv6"}]},
+        "license":0.05,"memory_amount":"4096","password":"Aa1!zzzzzzzzzz","plan":"2xCPU-4GB",
+        "state":"started","title":"Windows RDP","uuid":"00c78863-db86-44ea-af70-d6edc4d162bf",
+        "zone":"sg-sin1"}}"#;
+
+    #[test]
+    fn parses_created_server_with_windows_password() {
+        let v: Value = serde_json::from_str(CREATED).unwrap();
+        let s: Server = serde_json::from_value(v.get("server").unwrap().clone()).unwrap();
+        assert_eq!(s.uuid, "00c78863-db86-44ea-af70-d6edc4d162bf");
+        assert!(s.is_started());
+        assert_eq!(s.password.as_deref(), Some("Aa1!zzzzzzzzzz"));
+        assert_eq!(
+            s.public_ipv4().as_deref(),
+            Some("94.237.10.20"),
+            "harus IPv4 publik, bukan utility/IPv6"
+        );
+        assert!(!s.is_failed_state());
+    }
+
+    #[test]
+    fn server_without_password_or_ips_is_tolerated() {
+        let body = r#"{"server":{"uuid":"x","state":"maintenance"}}"#;
+        let v: Value = serde_json::from_str(body).unwrap();
+        let s: Server = serde_json::from_value(v.get("server").unwrap().clone()).unwrap();
+        assert!(s.password.is_none());
+        assert!(s.public_ipv4().is_none());
+        assert!(s.is_failed_state());
+    }
+
+    #[test]
+    fn create_body_matches_documented_shape() {
+        let spec = CreateSpec {
+            zone: "sg-sin1".into(),
+            title: "Windows RDP".into(),
+            hostname: "win-rdp-ab12".into(),
+            plan: "2xCPU-4GB".into(),
+            template_uuid: "01000000-0000-4000-8000-000030220400".into(),
+            storage_title: "Windows Server 2022".into(),
+            storage_size_gb: 40,
+            storage_tier: Some("maxiops".into()),
+        };
+        let b = spec.to_body();
+        assert_eq!(b["server"]["zone"], "sg-sin1");
+        assert_eq!(b["server"]["plan"], "2xCPU-4GB");
+        let dev = &b["server"]["storage_devices"]["storage_device"][0];
+        assert_eq!(dev["action"], "clone");
+        assert_eq!(dev["storage"], "01000000-0000-4000-8000-000030220400");
+        assert_eq!(dev["size"], 40);
+        assert_eq!(dev["tier"], "maxiops");
+        let ifaces = b["server"]["networking"]["interfaces"]["interface"]
+            .as_array()
+            .unwrap();
+        assert_eq!(ifaces[0]["type"], "public");
+        assert_eq!(ifaces[0]["ip_addresses"]["ip_address"][0]["family"], "IPv4");
+        // tanpa login_user: UpCloud membuat password Administrator sendiri
+        assert!(b["server"].get("login_user").is_none());
+    }
+
+    #[test]
+    fn create_body_without_size_or_tier() {
+        let spec = CreateSpec {
+            zone: "fi-hel1".into(),
+            title: "t".into(),
+            hostname: "h".into(),
+            plan: "1xCPU-2GB".into(),
+            template_uuid: "u".into(),
+            storage_title: "s".into(),
+            storage_size_gb: 0,
+            storage_tier: None,
+        };
+        let b = spec.to_body();
+        assert!(b["server"]["storage_devices"]["storage_device"][0]
+            .get("size")
+            .is_none());
+        assert!(b["server"]["storage_devices"]["storage_device"][0]
+            .get("tier")
+            .is_none());
+    }
+
+    #[test]
+    fn hostname_is_sanitized() {
+        let h = safe_hostname("Windows RDP #1 (SG)");
+        assert!(h.starts_with("windows-rdp-1-sg-"), "dapat: {h}");
+        assert!(h.len() <= 48);
+        assert!(h.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'));
+        assert_ne!(
+            safe_hostname("x"),
+            safe_hostname("x"),
+            "harus unik per panggilan"
+        );
     }
 }

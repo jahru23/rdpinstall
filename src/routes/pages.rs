@@ -47,7 +47,7 @@ pub async fn dashboard(state: &SharedState, user: User) -> AppResult<Response> {
 
     let jobs = sqlx::query_as::<_, Job>(
         "SELECT id, user_id, mode, provider, status, phase, progress, os_label, zone, plan,
-                host, rdp_port, rdp_user, error, created_at, updated_at, done_at, expires_at, wiped
+                host, rdp_port, rdp_user, provider_ref, error, created_at, updated_at, done_at, expires_at, wiped
          FROM jobs WHERE user_id = ? ORDER BY id DESC LIMIT 10",
     )
     .bind(user.id)

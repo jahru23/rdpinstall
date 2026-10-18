@@ -23,7 +23,7 @@
     <p class="label">Install baru</p>
     <p class="big">{{ rupiah(price) }}<span class="unit">/install</span></p>
     <p class="muted small">Buatan UpCloud dari template Windows resmi. Kredensial muncul otomatis setelah RDP siap.</p>
-    <div class="row"><button class="btn" disabled title="segera">mulai</button></div>
+    <div class="row"><a class="btn" href="/install">mulai</a></div>
   </div>
 
   <div class="card">
@@ -57,7 +57,7 @@
     <tbody>
     {% for j in jobs %}
       <tr>
-        <td class="mono">{{ j.id }}</td>
+        <td class="mono"><a href="/jobs/{{ j.id }}">{{ j.id }}</a></td>
         <td>{{ j.os_label }}{% if !j.zone.is_empty() %} <span class="dim">{{ j.zone }}</span>{% endif %}</td>
         <td><span class="badge {{ j.status_class() }}">{{ j.status }}</span></td>
         <td class="dim">{{ j.phase }}{% if j.is_active() %} <span class="mono">{{ j.progress }}%</span>{% endif %}</td>

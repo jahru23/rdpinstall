@@ -1,5 +1,6 @@
 pub mod assets;
 pub mod cloud;
+pub mod install;
 pub mod pages;
 pub mod telegram;
 
@@ -18,6 +19,10 @@ pub fn router(state: SharedState) -> Router {
         .route("/cloud", get(cloud::index).post(cloud::add))
         .route("/cloud/{id}/check", post(cloud::check))
         .route("/cloud/{id}/delete", post(cloud::delete))
+        .route("/install", get(install::wizard).post(install::create))
+        .route("/jobs/{id}", get(install::detail))
+        .route("/jobs/{id}/events", get(install::events))
+        .route("/jobs/{id}/destroy", post(install::destroy))
         .route("/healthz", get(|| async { "ok" }))
         .route("/static/style.css", get(assets::css))
         .route("/favicon.svg", get(assets::favicon))
