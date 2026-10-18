@@ -54,13 +54,22 @@ where
     Ok(Option::<i64>::deserialize(de)?.unwrap_or(0))
 }
 
+/// Sama untuk string: GoBiz mengirim `payment_link_url: null` (tidak ada
+/// halaman checkout, hanya QR) dan `qris` bisa null sebelum QR siap.
+fn null_as_empty<'de, D>(de: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    Ok(Option::<String>::deserialize(de)?.unwrap_or_default())
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Invoice {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub id: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub provider: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub reference_id: String,
     #[serde(default, deserialize_with = "null_as_zero")]
     pub base_amount: i64,
@@ -68,13 +77,13 @@ pub struct Invoice {
     pub service_fee: i64,
     #[serde(default, deserialize_with = "null_as_zero")]
     pub amount: i64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub status: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub qris: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub qris_id: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub payment_link_url: String,
     #[serde(default)]
     pub transaction_id: Option<String>,
@@ -442,6 +451,24 @@ mod tests {
         assert_eq!(inv.base_amount, 0);
         assert_eq!(inv.amount, 15000);
         assert_eq!(inv.credit_amount(), 15000);
+    }
+
+    /// Bentuk asli respons GoBiz: tanpa halaman checkout, beberapa field null.
+    #[test]
+    fn gobiz_create_response_with_nulls_parses() {
+        let body = r#"{"success":true,"data":{"invoice":{
+            "id":"inv_gobiz","provider":"gobiz","reference_id":"rdpi-1-x",
+            "base_amount":null,"service_fee":null,"amount":15000,"status":"pending",
+            "qris":"00020101021226610014COM.GO-JEK","qris_id":"PG-x-1",
+            "payment_link_url":null,"transaction_id":null,"paid_at":null,"expires_at":null
+        },"qris_png_url":"/qr/PG-x-1?format=png","qris_url":null}}"#;
+        let v: serde_json::Value = serde_json::from_str(body).unwrap();
+        let inv: Invoice =
+            serde_json::from_value(v.pointer("/data/invoice").unwrap().clone()).unwrap();
+        assert_eq!(inv.status, "pending");
+        assert_eq!(inv.credit_amount(), 15000);
+        assert!(inv.payment_link_url.is_empty());
+        assert!(!inv.is_final());
     }
 
     #[test]
