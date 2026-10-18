@@ -58,7 +58,7 @@ pub async fn callback(
 
     (
         jar.add(auth::session_cookie(&state, &token)),
-        Redirect::to("/"),
+        Redirect::to("/dashboard"),
     )
         .into_response()
 }
@@ -66,7 +66,7 @@ pub async fn callback(
 /// Login cepat tanpa Telegram — hanya aktif kalau RDPINSTALL_DEV_LOGIN=1 & bukan prod.
 pub async fn dev_login(State(state): State<SharedState>, jar: CookieJar) -> Response {
     if !state.cfg.dev_login {
-        return Redirect::to("/login").into_response();
+        return Redirect::to("/masuk").into_response();
     }
     let tg = TelegramAuth {
         id: 1,
@@ -87,7 +87,7 @@ pub async fn dev_login(State(state): State<SharedState>, jar: CookieJar) -> Resp
     };
     (
         jar.add(auth::session_cookie(&state, &token)),
-        Redirect::to("/"),
+        Redirect::to("/dashboard"),
     )
         .into_response()
 }
@@ -96,5 +96,5 @@ pub async fn logout(State(state): State<SharedState>, jar: CookieJar) -> Respons
     if let Some(c) = jar.get(auth::SESSION_COOKIE) {
         let _ = auth::destroy_session(&state, c.value()).await;
     }
-    (jar.add(auth::clear_cookie()), Redirect::to("/login")).into_response()
+    (jar.add(auth::clear_cookie()), Redirect::to("/masuk")).into_response()
 }

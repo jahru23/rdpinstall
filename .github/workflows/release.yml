@@ -19,6 +19,26 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --locked
 
+  verify-ui:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: build debug
+        run: cargo build
+      - name: klik-through UI
+        run: BIN="$PWD/target/debug/rdpinstall" bash deploy/ui-clickthrough.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-clickthrough
+          path: |
+            /tmp/rdpi-ui/log
+            /tmp/rdpi-ui/*.html
+          retention-days: 14
+
   build-musl:
     needs: check
     runs-on: ubuntu-latest

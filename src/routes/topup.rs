@@ -77,7 +77,7 @@ async fn page(
 
 pub async fn index(State(state): State<SharedState>, user: MaybeUser) -> Response {
     let MaybeUser(Some(user)) = user else {
-        return Redirect::to("/login").into_response();
+        return Redirect::to("/masuk").into_response();
     };
     page(&state, user, "", "").await
 }
@@ -150,7 +150,7 @@ pub async fn detail(
     Path(reference): Path<String>,
 ) -> Response {
     let MaybeUser(Some(user)) = user else {
-        return Redirect::to("/login").into_response();
+        return Redirect::to("/masuk").into_response();
     };
     let card = match build_card(&state, user.id, &reference).await {
         Ok(Some(c)) => c,

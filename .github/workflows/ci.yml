@@ -17,3 +17,6 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --locked
+      - run: cargo build
+      - name: klik-through UI
+        run: BIN="$PWD/target/debug/rdpinstall" bash deploy/ui-clickthrough.sh
