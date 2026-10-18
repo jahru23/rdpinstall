@@ -41,6 +41,13 @@ deploy/          systemd unit, vhost nginx, skrip deploy
 
 ## Deploy
 
+TLS diterminasi Cloudflare (mode Flexible), origin nginx hanya listen :80 dengan
+allowlist IP Cloudflare dan menolak request tanpa header `CF-Connecting-IP` —
+pola yang sama dengan vhost lain di VPS itu. Jadi tidak perlu certbot.
+
+DNS: record `A install.jaystore.top -> 43.133.131.46`, proxied (awan oranye).
+
+
 Jalur normal: push ke `main` → GitHub Actions build binary statis
 `x86_64-unknown-linux-musl` → kirim ke VPS → `deploy/install-remote.sh` yang
 memasang user sistem, `/opt/rdpinstall`, unit systemd, lalu cek `/healthz`.
