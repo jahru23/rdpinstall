@@ -14,9 +14,29 @@ export const App: React.FC = () => {
   const [activeToken, setActiveToken] = useState<string | null>(null);
   const [activeJobId, setActiveJobId] = useState<number | null>(null);
   const [isLoginModalOpen, setLoginModalOpen] = useState<boolean>(false);
+  const [savedGuestJob, setSavedGuestJob] = useState<{
+    token: string;
+    host: string;
+    voucher: string;
+    os_label?: string;
+    time: number;
+  } | null>(null);
 
   // Check URL routing on mount
   useEffect(() => {
+    // Check saved guest job from localStorage
+    try {
+      const raw = localStorage.getItem('rdpi_saved_guest_job');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Date.now() - parsed.time < 24 * 3600 * 1000) {
+          setSavedGuestJob(parsed);
+        } else {
+          localStorage.removeItem('rdpi_saved_guest_job');
+        }
+      }
+    } catch {}
+
     const path = window.location.pathname;
     if (path.startsWith('/g/')) {
       const token = path.replace('/g/', '').split('/')[0];
@@ -77,6 +97,42 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 py-5 sm:py-12">
+        {savedGuestJob && !activeToken && !activeJobId && currentTab === 'guest' && (
+          <div className="mb-6 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="text-xs">
+              <span className="font-bold flex items-center gap-1.5 text-orange-900">
+                <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping inline-block" />
+                Instalasi Terakhir Anda Masih Berlangsung
+              </span>
+              <p className="text-[#52525b] mt-0.5">
+                Target: <b>{savedGuestJob.host}</b> ({savedGuestJob.os_label || 'Windows'}) · Voucer: <span className="font-mono font-bold">{savedGuestJob.voucher}</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveToken(savedGuestJob.token);
+                  window.history.pushState({}, '', `/g/${savedGuestJob.token}`);
+                }}
+                className="btn-orange px-3.5 py-1.5 rounded-lg text-xs font-bold"
+              >
+                Buka Progres
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSavedGuestJob(null);
+                  localStorage.removeItem('rdpi_saved_guest_job');
+                }}
+                className="p-1.5 text-[#71717a] hover:text-[#0f172a] text-xs font-bold"
+              >
+                Abaikan
+              </button>
+            </div>
+          </div>
+        )}
+
         {activeToken ? (
           <JobMonitor
             token={activeToken}

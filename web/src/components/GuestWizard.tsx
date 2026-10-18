@@ -14,6 +14,7 @@ import {
   Layers,
   Sparkles,
   HelpCircle,
+  Clock,
 } from 'lucide-react';
 
 interface GuestWizardProps {
@@ -30,8 +31,13 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
   const [voucherStatus, setVoucherStatus] = useState<{
     checked: boolean;
     valid: boolean;
+    already_used?: boolean;
     message: string;
     note?: string;
+    token?: string;
+    host?: string;
+    os_label?: string;
+    job_status?: string;
   } | null>(null);
   const [validatingVoucher, setValidatingVoucher] = useState<boolean>(false);
 
@@ -70,6 +76,18 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
           note: data.note,
         });
         return true;
+      } else if (data.already_used && data.token) {
+        setVoucherStatus({
+          checked: true,
+          valid: false,
+          already_used: true,
+          message: data.message,
+          token: data.token,
+          host: data.host,
+          os_label: data.os_label,
+          job_status: data.job_status,
+        });
+        return false;
       } else {
         setVoucherStatus({
           checked: true,
@@ -174,6 +192,18 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
       if (res.redirected) {
         const url = new URL(res.url);
         const token = url.pathname.replace('/g/', '');
+        try {
+          localStorage.setItem(
+            'rdpi_saved_guest_job',
+            JSON.stringify({
+              token,
+              host,
+              voucher,
+              os_label: selectedEditionObj.label,
+              time: Date.now(),
+            })
+          );
+        } catch {}
         onSuccess(token);
         return;
       }
@@ -332,6 +362,26 @@ export const GuestWizard: React.FC<GuestWizardProps> = ({ onSuccess }) => {
                       </span>
                     )}
                   </div>
+                </div>
+              )}
+
+              {voucherStatus?.already_used && voucherStatus.token && (
+                <div className="mt-2.5 p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 font-bold">
+                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span>Instalasi Ditemukan dari Voucer Ini:</span>
+                  </div>
+                  <p className="text-[#52525b]">
+                    Target: <b>{voucherStatus.host}</b> ({voucherStatus.os_label}) · Status: <span className="uppercase font-bold">{voucherStatus.job_status}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => onSuccess(voucherStatus.token!)}
+                    className="btn-orange px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-sm"
+                  >
+                    <span>Buka Halaman Progres Instalasi</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               )}
 

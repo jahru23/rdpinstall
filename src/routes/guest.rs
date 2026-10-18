@@ -338,12 +338,41 @@ pub async fn validate_voucher(
                 }))
                 .into_response()
             } else if v.used_at != 0 {
-                Json(json!({
-                    "valid": false,
-                    "code": code,
-                    "message": "Kode voucer ini sudah pernah digunakan."
-                }))
-                .into_response()
+                // Cari data job yang terhubung dengan voucer ini untuk pemulihan akses jika tab tertutup
+                let job_info: Option<(String, String, String, String)> = if v.used_job_id > 0 {
+                    sqlx::query_as::<_, (String, String, String, String)>(
+                        "SELECT access_token, status, host, os_label FROM jobs WHERE id = ?",
+                    )
+                    .bind(v.used_job_id)
+                    .fetch_optional(&state.pool)
+                    .await
+                    .ok()
+                    .flatten()
+                } else {
+                    None
+                };
+
+                if let Some((access_token, status, host, os_label)) = job_info {
+                    Json(json!({
+                        "valid": false,
+                        "code": code,
+                        "already_used": true,
+                        "message": format!("Voucer ini sudah digunakan untuk pemasangan {} di {}.", os_label, host),
+                        "token": access_token,
+                        "job_status": status,
+                        "host": host,
+                        "os_label": os_label,
+                    }))
+                    .into_response()
+                } else {
+                    Json(json!({
+                        "valid": false,
+                        "code": code,
+                        "already_used": true,
+                        "message": "Kode voucer ini sudah pernah digunakan."
+                    }))
+                    .into_response()
+                }
             } else {
                 Json(json!({
                     "valid": true,

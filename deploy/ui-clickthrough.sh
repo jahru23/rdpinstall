@@ -96,9 +96,9 @@ resp=$(curl -s -b "$CJ" -H "Accept: application/json" -X POST -d "voucher=$CODE&
 TOKEN=$(python3 -c "import json, sys; d=json.loads('''$resp'''); print(d.get('token',''))" 2>/dev/null || echo "")
 [ -n "$TOKEN" ] && echo "  OK   token halaman tamu dibuat: $TOKEN" || { echo "  GAGAL token kosong: $resp"; FAILED=$((FAILED+1)); }
 
-# Voucer sekarang harus terdeteksi sudah digunakan
+# Voucer sekarang harus terdeteksi sudah digunakan dan menyertakan token pemulihan
 resp=$(curl -s "$B/api/voucher/validate?code=$CODE")
-echo "$resp" | grep -q "sudah pernah digunakan" && echo "  OK   voucer terpakai ditolak saat divalidasi" || { echo "  GAGAL status terpakai: $resp"; FAILED=$((FAILED+1)); }
+echo "$resp" | grep -q '"already_used":true' && echo "  OK   voucer terpakai ditolak & token pemulihan tersedia" || { echo "  GAGAL status terpakai: $resp"; FAILED=$((FAILED+1)); }
 
 echo "10. admin ubah saldo user"
 curl -s -b "$CJ" -X POST -d "amount=25000&mode=set&note=uji-admin" "$B/admin/users/1/balance" -o "$DIR/adj.json"
